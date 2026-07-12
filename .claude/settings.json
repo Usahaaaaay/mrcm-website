@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(mkdir -p \"/c/Users/mrcma/OneDrive/Documents/Projects/Personal Website/supabase/migrations\")",
+      "Bash(npm run *)",
+      "Bash(rm -rf dist)",
+      "Bash(node -e ' *)",
+      "Bash(mkdir -p .tmp-shots)",
+      "Bash(node shot.mjs)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 70828 //F)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/ --max-time 2)",
+      "Bash(taskkill //PID 76868 //F)",
+      "Bash(rm -rf .tmp-shots shot.mjs dist)",
+      "Bash(npm ls *)",
+      "Bash(node shot2.mjs)",
+      "Bash(cat /tmp/dev.log 2>&1 | tail -20)",
+      "Read(//tmp/**)",
+      "Bash(taskkill //PID 89160 //F)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/ --max-time 3)",
+      "Bash(taskkill //PID 79184 //F)",
+      "Bash(taskkill //PID 10256 //F)",
+      "Bash(node \"C:\\\\Users\\\\mrcma\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-mrcma-OneDrive-Documents-Projects-Personal-Website\\\\6fc41f36-92d2-4117-9ebb-488127ef8afd\\\\scratchpad\\\\verify-blog.mjs\")",
+      "Bash(cp \"C:\\\\Users\\\\mrcma\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-mrcma-OneDrive-Documents-Projects-Personal-Website\\\\6fc41f36-92d2-4117-9ebb-488127ef8afd\\\\scratchpad\\\\verify-blog.mjs\" \"c:\\\\Users\\\\mrcma\\\\OneDrive\\\\Documents\\\\Projects\\\\Personal Website\\\\verify-blog.mjs\")",
+      "Bash(node verify-blog.mjs)",
+      "Bash(rm -f verify-blog.mjs verify-direct.mjs verify-direct.png)",
+      "Bash(node -e \"console.log\\(Object.keys\\(require\\('lucide-react'\\)\\).filter\\(k => /loader/i.test\\(k\\)\\)\\)\")",
+      "Bash(cd \"c:\\\\Users\\\\mrcma\\\\OneDrive\\\\Documents\\\\Projects\\\\Personal Website\" && mkdir -p server/routes server/services server/middleware server/utils)",
+      "Bash(npm audit *)",
+      "Bash(node verify-no-contact.mjs)",
+      "Bash(taskkill //PID 101116 //F)",
+      "Bash(curl -s http://localhost:5173/ -o /dev/null -w \"HTTP %{http_code}\\\\n\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\mrcma\\OneDrive\\Documents\\Projects\\Personal Website\\supabase",
+      "c:\\Users\\mrcma\\OneDrive\\Documents\\Projects\\Personal Website\\server"
+    ]
+  }
+}

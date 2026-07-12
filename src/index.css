@@ -1,0 +1,77 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  /* Lake Tekapo palette */
+  --color-alpine: #FAFAF8;
+  --color-snow: #FFFFFF;
+  --color-cloud: #F3F6F8;
+  --color-lake: #2D6E92;
+  --color-turquoise: #69B7C8;
+  --color-slate: #4E5B61;
+  --color-navy: #102A43;
+  --color-gold: #C8A85A;
+
+  /* Tints derived for subtle surfaces / borders */
+  --color-lake-50: #EAF2F6;
+  --color-lake-100: #D3E4EC;
+  --color-navy-50: #EDF1F5;
+
+  --font-display: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-soft: 0 2px 8px rgba(16, 42, 67, 0.04), 0 12px 32px -8px rgba(16, 42, 67, 0.08);
+  --shadow-lift: 0 8px 16px rgba(16, 42, 67, 0.06), 0 24px 48px -12px rgba(16, 42, 67, 0.16);
+
+  --animate-float: float 8s ease-in-out infinite;
+  --animate-twinkle: twinkle 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-alpine);
+  color: var(--color-navy);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+::selection {
+  background-color: var(--color-gold);
+  color: var(--color-navy);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-lake);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
