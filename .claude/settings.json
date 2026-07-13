@@ -30,7 +30,10 @@
       "Bash(npm audit *)",
       "Bash(node verify-no-contact.mjs)",
       "Bash(taskkill //PID 101116 //F)",
-      "Bash(curl -s http://localhost:5173/ -o /dev/null -w \"HTTP %{http_code}\\\\n\")"
+      "Bash(curl -s http://localhost:5173/ -o /dev/null -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(node -e \"console.log\\(require\\('leaflet/dist/leaflet.css'\\) || ''\\)\")",
+      "Bash(node verify-header-fix.mjs)",
+      "Bash(node verify-geometry.mjs)"
     ],
     "additionalDirectories": [
       "C:\\Users\\mrcma\\OneDrive\\Documents\\Projects\\Personal Website\\supabase",

@@ -32,7 +32,12 @@ const GuideMap = ({ destinations, selectedId, onSelectLocation }) => {
       zoom={DEFAULT_ZOOM}
       scrollWheelZoom
       zoomAnimation
-      className="h-full w-full"
+      // `isolate` gives Leaflet's own rendering (tile/marker/popup panes and
+      // zoom controls all carry z-index values up to 1000 in leaflet.css) its
+      // own stacking context, so none of it can ever paint above the site
+      // header's z-50 regardless of raw z-index numbers — a real fix, not a
+      // higher magic z-index chasing Leaflet's.
+      className="h-full w-full isolate"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
@@ -20,6 +20,7 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false)
   const { pathname } = useLocation()
   const activeSectionId = useActiveSection(sectionIds)
+  const barRef = useRef(null)
 
   useScrollLock(menuOpen)
 
@@ -28,6 +29,28 @@ const Navbar = () => {
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Publishes the header's real rendered height as a CSS custom property so
+  // any page can reserve exactly that much space below the fixed header
+  // instead of a hand-guessed padding value (see TekapoGuidePage.jsx).
+  // Measures `barRef` (the persistent logo/nav row) rather than the whole
+  // <header> — the mobile dropdown menu is a sibling inside <header> too, and
+  // its height must NOT be counted here or every page's layout would jump
+  // whenever the hamburger menu opens. useLayoutEffect (not useEffect) so the
+  // very first paint already has the correct value, no flash of wrong size.
+  useLayoutEffect(() => {
+    const el = barRef.current
+    if (!el) return
+
+    const setHeaderHeightVar = () => {
+      document.documentElement.style.setProperty('--site-header-height', `${el.offsetHeight}px`)
+    }
+
+    setHeaderHeightVar()
+    const observer = new ResizeObserver(setHeaderHeightVar)
+    observer.observe(el)
+    return () => observer.disconnect()
   }, [])
 
   const handleLinkClick = () => setMenuOpen(false)
@@ -45,6 +68,7 @@ const Navbar = () => {
       }`}
     >
       <nav
+        ref={barRef}
         className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 sm:px-10"
         aria-label="Primary"
       >

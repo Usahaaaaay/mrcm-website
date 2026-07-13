@@ -51,7 +51,20 @@ const TekapoGuidePage = () => {
     )
 
   return (
-    <div className="flex h-screen flex-col bg-alpine pt-20 sm:pt-24">
+    // Fixed to exactly the viewport height below the header (via the real,
+    // measured --site-header-height from Navbar.jsx, not a guessed padding),
+    // with overflow-hidden so this box can never grow taller than that and
+    // trigger page-level scroll. That page-level scroll was the actual bug:
+    // once the document itself could scroll, the map — positioned in normal
+    // flow beneath the header — could slide up underneath the fixed header,
+    // and Leaflet's own panes/controls (z-index up to 1000, see mapIcons.jsx
+    // / GuideMap.jsx) would then paint over the header's z-50. Confining all
+    // scrolling to the inner sidebar/list regions (overflow-y-auto below)
+    // removes that scenario at its source, instead of just raising z-index.
+    <div
+      className="flex flex-col overflow-hidden bg-alpine"
+      style={{ marginTop: 'var(--site-header-height, 5rem)', height: 'calc(100vh - var(--site-header-height, 5rem))' }}
+    >
       <div className="border-b border-navy/8 px-6 py-5 sm:px-10">
         <h1 className="font-display text-xl font-bold text-navy sm:text-2xl">Tekapo Guide</h1>
         <p className="mt-1 text-sm text-slate">
