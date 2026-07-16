@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { format } from 'date-fns'
 import { Upload, Link2, Video as VideoIcon, Trash2, Play } from 'lucide-react'
 import { useMedia, deleteMedia } from '../hooks/useMedia'
 import { getPublicMediaUrl } from '../../lib/supabase'

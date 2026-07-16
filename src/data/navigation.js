@@ -7,5 +7,6 @@ export const navLinks = [
   { label: 'Portfolio', href: '/#portfolio', type: 'hash' },
   { label: 'Gallery', href: '/#gallery', type: 'hash' },
   { label: 'Tekapo Guide', href: '/guide', type: 'route' },
+  { label: 'Tekapo Journey', href: '/tekapo-journey', type: 'route' },
   { label: 'About', href: '/#about', type: 'hash' },
 ]

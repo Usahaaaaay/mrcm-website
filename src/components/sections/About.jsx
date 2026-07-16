@@ -32,7 +32,7 @@ const About = () => {
   ].filter((item) => item.value)
 
   return (
-    <section id="about" className="bg-alpine px-6 py-28 sm:px-10">
+    <section id="about" className="overflow-x-hidden bg-alpine px-6 py-28 sm:px-10">
       <div className="mx-auto max-w-6xl">
         <SectionTitle
           eyebrow="About Me"
@@ -107,7 +107,11 @@ const About = () => {
             ) : null}
           </Reveal>
 
-          <Reveal delay={0.1} className="flex flex-col gap-6">
+          {/* amount: 0 (not the Reveal default of 0.2) — this wraps bio_content_html,
+              whose length is unbounded/author-controlled. See BlogPostPage.jsx for the
+              full explanation: a percentage-based viewport threshold can never be
+              satisfied for sufficiently long content, permanently stuck at opacity: 0. */}
+          <Reveal delay={0.1} className="flex flex-col gap-6" viewport={{ once: true, amount: 0 }}>
             {about.tagline ? <p className="text-lg font-medium text-navy">{about.tagline}</p> : null}
             {about.short_introduction ? <p className="text-lg leading-relaxed text-slate">{about.short_introduction}</p> : null}
             {bioHtml ? (

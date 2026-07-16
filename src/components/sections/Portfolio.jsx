@@ -16,7 +16,7 @@ const statusStyles = {
 const accentCycle = ['lake', 'turquoise', 'gold', 'slate', 'navy']
 
 const Portfolio = () => {
-  const { projects, loading } = usePortfolioProjects(9)
+  const { projects, loading, error } = usePortfolioProjects(9)
 
   return (
     <section id="portfolio" className="bg-cloud px-6 py-28 sm:px-10">
@@ -27,7 +27,11 @@ const Portfolio = () => {
           description="A small, growing showcase of practical software and side projects — with plenty of room left for what's next."
         />
 
-        {!loading && projects.length === 0 ? (
+        {!loading && error ? (
+          <Reveal className="py-10 text-center text-slate">
+            Couldn&rsquo;t load projects right now — please try again shortly.
+          </Reveal>
+        ) : !loading && projects.length === 0 ? (
           <Reveal className="py-10 text-center text-slate">
             New projects are in the works — check back soon.
           </Reveal>

@@ -9,7 +9,7 @@ const aspectClasses = {
 }
 
 const Gallery = () => {
-  const { items, loading } = useGalleryItems(12)
+  const { items, loading, error } = useGalleryItems(12)
 
   return (
     <section id="gallery" className="bg-navy px-6 py-28 sm:px-10">
@@ -22,7 +22,11 @@ const Gallery = () => {
           theme="dark"
         />
 
-        {!loading && items.length === 0 ? (
+        {!loading && error ? (
+          <Reveal className="py-10 text-center text-alpine/70">
+            Couldn&rsquo;t load photos right now — please try again shortly.
+          </Reveal>
+        ) : !loading && items.length === 0 ? (
           <Reveal className="py-10 text-center text-alpine/70">
             Photos are on their way — check back soon.
           </Reveal>

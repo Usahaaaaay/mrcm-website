@@ -1,8 +1,36 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, MapPin, Compass } from 'lucide-react'
+import { ArrowLeft, MapPin, Compass, SearchX } from 'lucide-react'
 import { getVisibleDestination } from '../services/destinationService'
 import { getLocationCategory } from '../lib/locationCategories'
+import Button from '../components/ui/Button'
+
+const DestinationSkeleton = () => (
+  <div className="mt-6 animate-pulse overflow-hidden rounded-3xl border border-navy/8 bg-snow shadow-soft" aria-hidden="true">
+    <div className="aspect-video w-full bg-cloud" />
+    <div className="flex flex-col gap-4 p-8">
+      <div className="h-5 w-28 rounded-full bg-cloud" />
+      <div className="h-8 w-2/3 rounded-full bg-cloud" />
+      <div className="h-4 w-full rounded-full bg-cloud" />
+      <div className="h-4 w-5/6 rounded-full bg-cloud" />
+    </div>
+  </div>
+)
+
+const DestinationNotFound = () => (
+  <div className="mt-8 flex flex-col items-center gap-4 rounded-3xl border border-navy/8 bg-snow p-10 text-center shadow-soft sm:p-16">
+    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-cloud text-slate">
+      <SearchX size={24} aria-hidden="true" />
+    </div>
+    <h1 className="font-display text-xl font-bold text-navy">Destination not found</h1>
+    <p className="max-w-sm text-sm text-slate">
+      This location may have been removed or the link may be incorrect. Take a look at the rest of the guide instead.
+    </p>
+    <Button as={Link} to="/guide" variant="primary" className="mt-2">
+      Back to Tekapo Guide
+    </Button>
+  </div>
+)
 
 const DestinationDetailPage = () => {
   const { id } = useParams()
@@ -29,11 +57,9 @@ const DestinationDetailPage = () => {
         </Link>
 
         {loading ? (
-          <p className="mt-8 text-sm text-slate">Loading…</p>
+          <DestinationSkeleton />
         ) : error || !destination ? (
-          <div className="mt-8 rounded-3xl border border-navy/8 bg-snow p-10 text-center shadow-soft">
-            <p className="text-sm text-slate">This destination couldn&rsquo;t be found.</p>
-          </div>
+          <DestinationNotFound />
         ) : (
           <div className="mt-6 overflow-hidden rounded-3xl border border-navy/8 bg-snow shadow-soft">
             {destination.image_url ? (

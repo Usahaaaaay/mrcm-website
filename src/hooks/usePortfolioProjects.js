@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 export function usePortfolioProjects(limit = 9) {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -13,9 +14,10 @@ export function usePortfolioProjects(limit = 9) {
       .select('*, category:categories(*), cover_media:media(*)')
       .order('created_at', { ascending: false })
       .limit(limit)
-      .then(({ data, error }) => {
+      .then(({ data, error: queryError }) => {
         if (cancelled) return
-        if (!error) setProjects(data ?? [])
+        if (queryError) setError(queryError)
+        else setProjects(data ?? [])
         setLoading(false)
       })
 
@@ -24,5 +26,5 @@ export function usePortfolioProjects(limit = 9) {
     }
   }, [limit])
 
-  return { projects, loading }
+  return { projects, loading, error }
 }

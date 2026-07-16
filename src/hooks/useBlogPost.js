@@ -19,7 +19,7 @@ export function usePublishedPost(slug) {
       .select('*, category:categories(*), cover_media:media(*)')
       .eq('slug', slug)
       .eq('status', 'published')
-      .single()
+      .maybeSingle()
       .then(({ data, error: queryError }) => {
         if (cancelled) return
         if (queryError) setError(queryError)

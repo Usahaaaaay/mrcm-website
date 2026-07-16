@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 export function useGalleryItems(limit = 12) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -13,9 +14,10 @@ export function useGalleryItems(limit = 12) {
       .select('*, category:categories(*), media(*)')
       .order('created_at', { ascending: false })
       .limit(limit)
-      .then(({ data, error }) => {
+      .then(({ data, error: queryError }) => {
         if (cancelled) return
-        if (!error) setItems(data ?? [])
+        if (queryError) setError(queryError)
+        else setItems(data ?? [])
         setLoading(false)
       })
 
@@ -24,5 +26,5 @@ export function useGalleryItems(limit = 12) {
     }
   }, [limit])
 
-  return { items, loading }
+  return { items, loading, error }
 }

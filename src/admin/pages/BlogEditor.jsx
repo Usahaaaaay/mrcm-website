@@ -81,6 +81,13 @@ const BlogEditor = () => {
   })
 
   const save = async (overrides = {}) => {
+    // Cancel any pending debounced autosave before persisting. Without this,
+    // an autosave scheduled before this call (its closure holding an older
+    // `form.status`) can still fire afterward and silently overwrite a status
+    // change made in the meantime — e.g. publishing, then having the stale
+    // autosave revert the row back to "draft" moments later.
+    clearTimeout(autosaveTimer.current)
+
     if (!form.title.trim()) {
       toast.error('Title is required.')
       return null

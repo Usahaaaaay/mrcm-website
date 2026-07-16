@@ -20,6 +20,34 @@ const FlyToSelected = ({ destination }) => {
   return null
 }
 
+// Leaflet measures its container's pixel size once at init and never
+// re-checks it on its own. This page is lazy-loaded and its height depends
+// on --site-header-height (set asynchronously by Navbar's ResizeObserver,
+// see TekapoGuidePage.jsx), so the container's size at the exact moment
+// Leaflet initializes can be stale or wrong — and the same problem recurs
+// any time the layout changes afterward (window resize, orientation change,
+// the sidebar/filters changing height on mobile). A ResizeObserver on the
+// map's own container is the single mechanism that catches all of those
+// cases, rather than wiring up separate window "resize"/"orientationchange"
+// listeners that wouldn't fire for layout-only changes like the sidebar.
+const MapResizeHandler = () => {
+  const map = useMap()
+
+  useEffect(() => {
+    const container = map.getContainer()
+    const observer = new ResizeObserver(() => map.invalidateSize())
+    observer.observe(container)
+
+    // Correct for whatever size the container happened to be at the moment
+    // Leaflet actually initialized, in case it was already wrong by then.
+    map.invalidateSize()
+
+    return () => observer.disconnect()
+  }, [map])
+
+  return null
+}
+
 // One destination is always one row (see src/services/destinationService.js),
 // so this renders 1:1 — no client-side grouping/dedup step is needed here at
 // all, unlike the old locations model.
@@ -58,6 +86,7 @@ const GuideMap = ({ destinations, selectedId, onSelectLocation }) => {
       ))}
 
       <FlyToSelected destination={selectedDestination} />
+      <MapResizeHandler />
     </MapContainer>
   )
 }

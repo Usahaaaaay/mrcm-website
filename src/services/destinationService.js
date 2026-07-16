@@ -33,15 +33,23 @@ export async function listVisibleDestinations() {
   return (data ?? []).map(normalizeDestination)
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Returns null (not a thrown error) when the id doesn't exist or isn't visible — a
+ *  normal, expected outcome for a public detail page, not a failure. A malformed id
+ *  (e.g. a stale or hand-typed URL) is treated the same way rather than reaching the
+ *  database at all, since Postgres would otherwise reject a non-UUID value outright. */
 export async function getVisibleDestination(id) {
+  if (!UUID_PATTERN.test(id)) return null
+
   const { data, error } = await supabase
     .from('destinations')
     .select(DESTINATION_COLUMNS)
     .eq('id', id)
     .eq('visible', true)
-    .single()
+    .maybeSingle()
   if (error) throw error
-  return normalizeDestination(data)
+  return data ? normalizeDestination(data) : null
 }
 
 /** Admin-facing: every destination regardless of visibility, with search/category/pagination. */

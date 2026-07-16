@@ -20,6 +20,7 @@ const GalleryManager = lazy(() => import('./admin/pages/GalleryManager'))
 const Destinations = lazy(() => import('./admin/pages/Destinations'))
 const AboutEditor = lazy(() => import('./admin/pages/AboutEditor'))
 const TekapoGuidePage = lazy(() => import('./pages/TekapoGuidePage'))
+const TekapoJourney = lazy(() => import('./pages/TekapoJourney'))
 const DestinationDetailPage = lazy(() => import('./pages/DestinationDetailPage'))
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage'))
 
@@ -63,6 +64,15 @@ function App() {
                   <DestinationDetailPage />
                 </Suspense>
               </MainLayout>
+            }
+          />
+
+          <Route
+            path="/tekapo-journey"
+            element={
+              <Suspense fallback={<PageFallback />}>
+                <TekapoJourney />
+              </Suspense>
             }
           />
 

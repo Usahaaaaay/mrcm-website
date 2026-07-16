@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Compass } from 'lucide-react'
+import { Compass, AlertTriangle } from 'lucide-react'
 import { useDestinations } from '../hooks/useDestinations'
 import GuideMap from '../components/guide/GuideMap'
 import GuideSearch from '../components/guide/GuideSearch'
@@ -15,7 +15,7 @@ const matchesSearch = (destination, term) => {
 }
 
 const TekapoGuidePage = () => {
-  const { destinations, loading } = useDestinations()
+  const { destinations, loading, error } = useDestinations()
   const [search, setSearch] = useState('')
   const [selectedCategories, setSelectedCategories] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -34,7 +34,12 @@ const TekapoGuidePage = () => {
   )
 
   const listContent =
-    !loading && filteredDestinations.length === 0 ? (
+    !loading && error ? (
+      <div className="flex flex-col items-center gap-2 py-10 text-center text-slate">
+        <AlertTriangle size={22} strokeWidth={1.5} />
+        <p className="text-sm">Couldn&rsquo;t load destinations right now — please try again shortly.</p>
+      </div>
+    ) : !loading && filteredDestinations.length === 0 ? (
       <div className="flex flex-col items-center gap-2 py-10 text-center text-slate">
         <Compass size={22} strokeWidth={1.5} />
         <p className="text-sm">No destinations match your search.</p>

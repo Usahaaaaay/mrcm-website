@@ -11,7 +11,7 @@ import SectionTitle from '../ui/SectionTitle'
 const accentCycle = ['lake', 'turquoise', 'gold', 'slate', 'navy']
 
 const Blog = () => {
-  const { posts, loading } = usePublishedPosts(3)
+  const { posts, loading, error } = usePublishedPosts(3)
 
   return (
     <section id="blog" className="bg-alpine px-6 py-28 sm:px-10">
@@ -22,7 +22,11 @@ const Blog = () => {
           description="Reflections on building software, chasing good light, and everything in between."
         />
 
-        {!loading && posts.length === 0 ? (
+        {!loading && error ? (
+          <Reveal className="py-10 text-center text-slate">
+            Couldn&rsquo;t load articles right now — please try again shortly.
+          </Reveal>
+        ) : !loading && posts.length === 0 ? (
           <Reveal className="py-10 text-center text-slate">
             New stories are on their way — check back soon.
           </Reveal>
