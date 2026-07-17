@@ -1,5 +1,6 @@
-import { MapPin } from 'lucide-react'
+import { MapPin, Navigation } from 'lucide-react'
 import { getLocationCategory } from '../../lib/locationCategories'
+import { formatDistance } from '../../lib/geo'
 
 const DestinationCard = ({ destination, active, onSelect }) => (
   <button
@@ -46,6 +47,12 @@ const DestinationCard = ({ destination, active, onSelect }) => (
         <p className="mt-1 flex items-center gap-1 truncate text-[11px] text-slate/70">
           <MapPin size={10} />
           {destination.address}
+        </p>
+      ) : null}
+      {formatDistance(destination.distanceKm) ? (
+        <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate/70">
+          <Navigation size={10} />
+          {formatDistance(destination.distanceKm)} away
         </p>
       ) : null}
     </div>

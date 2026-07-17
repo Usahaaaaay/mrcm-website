@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react'
-import { Compass, AlertTriangle } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useDestinations } from '../hooks/useDestinations'
-import GuideMap from '../components/guide/GuideMap'
-import GuideSearch from '../components/guide/GuideSearch'
-import GuideFilters from '../components/guide/GuideFilters'
-import DestinationCard from '../components/guide/DestinationCard'
+import { useGeolocation } from '../hooks/useGeolocation'
+import { useScrollLock } from '../hooks/useScrollLock'
+import { haversineDistanceKm } from '../lib/geo'
+import { getLocationCategory } from '../lib/locationCategories'
+import GuideLayout from '../components/guide/GuideLayout'
 
 const matchesSearch = (destination, term) => {
   if (!term) return true
@@ -19,85 +19,89 @@ const TekapoGuidePage = () => {
   const [search, setSearch] = useState('')
   const [selectedCategories, setSelectedCategories] = useState([])
   const [selectedId, setSelectedId] = useState(null)
+  const [fullscreen, setFullscreen] = useState(false)
+  const [sortMode, setSortMode] = useState('alphabetical')
+  const { coords: userLocation, status: geoStatus, requestLocation } = useGeolocation()
+
+  useScrollLock(fullscreen)
 
   const toggleCategory = (value) =>
     setSelectedCategories((prev) => (prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]))
 
+  // Selecting "Nearest" doubles as the "Nearby" quick action — it requests
+  // location if not already granted, rather than needing a separate button
+  // for the same effect.
+  const handleSortModeChange = (mode) => {
+    setSortMode(mode)
+    if (mode === 'nearest' && geoStatus !== 'granted' && geoStatus !== 'locating') {
+      requestLocation()
+    }
+  }
+
+  const destinationsWithDistance = useMemo(
+    () =>
+      userLocation
+        ? destinations.map((destination) => ({
+            ...destination,
+            distanceKm: haversineDistanceKm(userLocation, { lat: destination.latitude, lng: destination.longitude }),
+          }))
+        : destinations,
+    [destinations, userLocation]
+  )
+
   const filteredDestinations = useMemo(
     () =>
-      destinations.filter(
+      destinationsWithDistance.filter(
         (destination) =>
           (selectedCategories.length === 0 || selectedCategories.some((c) => destination.categories.includes(c))) &&
           matchesSearch(destination, search)
       ),
-    [destinations, search, selectedCategories]
+    [destinationsWithDistance, search, selectedCategories]
   )
 
-  const listContent =
-    !loading && error ? (
-      <div className="flex flex-col items-center gap-2 py-10 text-center text-slate">
-        <AlertTriangle size={22} strokeWidth={1.5} />
-        <p className="text-sm">Couldn&rsquo;t load destinations right now — please try again shortly.</p>
-      </div>
-    ) : !loading && filteredDestinations.length === 0 ? (
-      <div className="flex flex-col items-center gap-2 py-10 text-center text-slate">
-        <Compass size={22} strokeWidth={1.5} />
-        <p className="text-sm">No destinations match your search.</p>
-      </div>
-    ) : (
-      filteredDestinations.map((destination) => (
-        <DestinationCard
-          key={destination.id}
-          destination={destination}
-          active={destination.id === selectedId}
-          onSelect={setSelectedId}
-        />
-      ))
-    )
+  // Alphabetical is already the incoming order from listVisibleDestinations()
+  // (ordered by name) — only 'nearest' and 'category' need an explicit sort.
+  const sortedDestinations = useMemo(() => {
+    if (sortMode === 'nearest' && userLocation) {
+      return [...filteredDestinations].sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
+    }
+    if (sortMode === 'category') {
+      return [...filteredDestinations].sort((a, b) => {
+        const labelA = getLocationCategory(a.categories[0]).label
+        const labelB = getLocationCategory(b.categories[0]).label
+        return labelA.localeCompare(labelB) || a.name.localeCompare(b.name)
+      })
+    }
+    return filteredDestinations
+  }, [filteredDestinations, sortMode, userLocation])
+
+  // Satisfies "auto-zoom if one result": reuses the existing selectedId/
+  // FlyToSelected mechanism rather than a new one.
+  useEffect(() => {
+    if (sortedDestinations.length === 1 && sortedDestinations[0].id !== selectedId) {
+      setSelectedId(sortedDestinations[0].id)
+    }
+  }, [sortedDestinations, selectedId])
 
   return (
-    // Fixed to exactly the viewport height below the header (via the real,
-    // measured --site-header-height from Navbar.jsx, not a guessed padding),
-    // with overflow-hidden so this box can never grow taller than that and
-    // trigger page-level scroll. That page-level scroll was the actual bug:
-    // once the document itself could scroll, the map — positioned in normal
-    // flow beneath the header — could slide up underneath the fixed header,
-    // and Leaflet's own panes/controls (z-index up to 1000, see mapIcons.jsx
-    // / GuideMap.jsx) would then paint over the header's z-50. Confining all
-    // scrolling to the inner sidebar/list regions (overflow-y-auto below)
-    // removes that scenario at its source, instead of just raising z-index.
-    <div
-      className="flex flex-col overflow-hidden bg-alpine"
-      style={{ marginTop: 'var(--site-header-height, 5rem)', height: 'calc(100vh - var(--site-header-height, 5rem))' }}
-    >
-      <div className="border-b border-navy/8 px-6 py-5 sm:px-10">
-        <h1 className="font-display text-xl font-bold text-navy sm:text-2xl">Tekapo Guide</h1>
-        <p className="mt-1 text-sm text-slate">
-          Find toilets, parking, walking tracks, and the best stargazing spots around Lake Tekapo.
-        </p>
-      </div>
-
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="hidden min-h-0 flex-col lg:flex lg:w-[420px] lg:shrink-0 lg:border-r lg:border-navy/8">
-          <div className="flex flex-col gap-4 border-b border-navy/8 p-5">
-            <GuideSearch value={search} onChange={setSearch} />
-            <GuideFilters selected={selectedCategories} onToggle={toggleCategory} />
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">{listContent}</div>
-        </aside>
-
-        <div className="flex flex-col gap-4 border-b border-navy/8 p-5 lg:hidden">
-          <GuideSearch value={search} onChange={setSearch} />
-          <GuideFilters selected={selectedCategories} onToggle={toggleCategory} />
-        </div>
-
-        <div className="h-[45vh] shrink-0 lg:h-auto lg:flex-1">
-          <GuideMap destinations={filteredDestinations} selectedId={selectedId} onSelectLocation={setSelectedId} />
-        </div>
-
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5 lg:hidden">{listContent}</div>
-      </div>
-    </div>
+    <GuideLayout
+      loading={loading}
+      error={error}
+      filteredDestinations={sortedDestinations}
+      search={search}
+      onSearchChange={setSearch}
+      selectedCategories={selectedCategories}
+      onToggleCategory={toggleCategory}
+      selectedId={selectedId}
+      onSelectLocation={setSelectedId}
+      fullscreen={fullscreen}
+      onToggleFullscreen={() => setFullscreen((f) => !f)}
+      userLocation={userLocation}
+      geoStatus={geoStatus}
+      onRequestLocation={requestLocation}
+      sortMode={sortMode}
+      onSortModeChange={handleSortModeChange}
+    />
   )
 }
 

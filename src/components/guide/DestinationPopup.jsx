@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, MapPin, Compass } from 'lucide-react'
+import { ArrowRight, MapPin, Compass, Navigation } from 'lucide-react'
 import { getLocationCategory } from '../../lib/locationCategories'
+import { formatDistance } from '../../lib/geo'
 
 /** `destination` carries every category and named experience it offers (see
  *  src/services/destinationService.js) — one destination is always one marker. */
@@ -55,6 +56,13 @@ const DestinationPopup = ({ destination }) => (
       <p className="mt-1.5 flex items-center gap-1 text-[11px] text-slate/70">
         <MapPin size={10} />
         {destination.address}
+      </p>
+    ) : null}
+
+    {formatDistance(destination.distanceKm) ? (
+      <p className="mt-1 flex items-center gap-1 text-[11px] text-slate/70">
+        <Navigation size={10} />
+        {formatDistance(destination.distanceKm)} away
       </p>
     ) : null}
 
