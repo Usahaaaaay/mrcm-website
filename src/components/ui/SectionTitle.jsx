@@ -1,6 +1,11 @@
 import Reveal from './Reveal'
 
-const SectionTitle = ({ eyebrow, title, description, align = 'center', theme = 'light' }) => {
+// titleAs: every call site inside the homepage's single-page sections wants
+// an <h2> (Hero.jsx already owns that page's one <h1>) — a standalone route
+// like the Blog listing page needs its own <h1> instead, since it isn't a
+// section of some other page's heading hierarchy. Defaults to 'h2' so every
+// existing usage is unaffected; only pages that need it opt in.
+const SectionTitle = ({ eyebrow, title, description, align = 'center', theme = 'light', titleAs: TitleTag = 'h2' }) => {
   const alignment = align === 'center' ? 'items-center text-center mx-auto' : 'items-start text-left'
   const headingColor = theme === 'dark' ? 'text-alpine' : 'text-navy'
   const descriptionColor = theme === 'dark' ? 'text-alpine/70' : 'text-slate'
@@ -12,9 +17,9 @@ const SectionTitle = ({ eyebrow, title, description, align = 'center', theme = '
           {eyebrow}
         </span>
       ) : null}
-      <h2 className={`text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight text-balance ${headingColor}`}>
+      <TitleTag className={`text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight text-balance ${headingColor}`}>
         {title}
-      </h2>
+      </TitleTag>
       {description ? (
         <p className={`text-base sm:text-lg leading-relaxed text-balance ${descriptionColor}`}>
           {description}

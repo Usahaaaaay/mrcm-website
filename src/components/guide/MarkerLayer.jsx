@@ -30,8 +30,30 @@ const DestinationMarker = memo(function DestinationMarker({ destination, lat, ln
   // makes "a marker click can never be reinterpreted as a map/cluster click"
   // an invariant of this handler rather than an implicit default — selecting
   // a destination must always win, unconditionally.
+  //
+  // mousedown: calls preventDefault on the *native* event specifically to
+  // stop the browser's default "focus this element" action for the click —
+  // not to interfere with Leaflet's own click handling (click still fires
+  // normally on mouseup; only the focus side effect is suppressed). This
+  // exists defense-in-depth alongside autoPanOnFocus={false} below: that
+  // option stops Leaflet's *own* JS from reacting to focus, but the marker
+  // icon was still a real `tabindex="0"` element actually receiving DOM
+  // focus on every tap (confirmed live: a captured `focus` event fired on
+  // the marker icon itself on both a mouse click and a touch tap). Some
+  // browsers/OSes apply their own native "scroll/bring focused element into
+  // view" behavior independent of any Leaflet or React code entirely — never
+  // touching any of our own camera logic, so no amount of fixing
+  // KeepSelectedVisible could ever have caught it. Preventing the focus from
+  // happening at all removes that whole class of side effect at its root,
+  // rather than reacting to yet another symptom of it.
   const eventHandlers = useMemo(
     () => ({
+      // Leaflet's own dispatched mouse event has no real preventDefault (only
+      // `.originalEvent`, the actual DOM event, does) — L.DomEvent.preventDefault
+      // silently no-ops on anything else, so this must target originalEvent
+      // directly for the browser's default focus-on-mousedown to actually be
+      // suppressed.
+      mousedown: (event) => event.originalEvent.preventDefault(),
       click: (event) => {
         L.DomEvent.stopPropagation(event)
         onSelect(destination.id)
@@ -41,21 +63,6 @@ const DestinationMarker = memo(function DestinationMarker({ destination, lat, ln
   )
 
   return (
-    // autoPanOnFocus={false}: the actual, proven source of "the map still
-    // moves slightly on every marker tap" — Leaflet's Marker (not Popup) sets
-    // tabIndex=0 on its icon by default (options.keyboard) and, separately,
-    // wires a native DOM `focus` listener that calls map.panInside() whenever
-    // that icon receives focus (options.autoPanOnFocus, default true). A
-    // mouse/touch click on a focusable element focuses it as an ordinary
-    // browser side effect, so *every* marker tap fired this — entirely inside
-    // Leaflet's own Marker/Icon code, never touching React, onSelectLocation,
-    // or KeepSelectedVisible, which is exactly why fixing our own camera logic
-    // repeatedly never stopped the movement. Confirmed via
-    // console.trace-equivalent instrumentation on the live map: the captured
-    // stack was `map.panInside -> NewClass._panOnFocus -> HTMLDivElement
-    // 'focus' handler`, with zero frames from any of our own code. Popup's
-    // own autoPan (a separate, unrelated option) was already off and was
-    // never the cause.
     <Marker position={position} icon={icon} eventHandlers={eventHandlers} autoPanOnFocus={false}>
       {/* closeOnClick disabled: Leaflet's Popup registers a map-level
           `preclick` handler that closes it by default (meant for "click
@@ -73,13 +80,16 @@ const DestinationMarker = memo(function DestinationMarker({ destination, lat, ln
 
 /** Same reasoning as DestinationMarker — stable position/eventHandlers so an
  *  unrelated re-render (e.g. another cluster's click) doesn't tear down and
- *  recreate this one. Cluster bubbles have no popup, so this is purely a
- *  performance/consistency improvement rather than fixing a visible bug. */
+ *  recreate this one, and the same mousedown/autoPanOnFocus pair to stop
+ *  clicking it from focusing (and therefore possibly auto-panning to) its
+ *  icon. Cluster bubbles have no popup, so this is purely a performance/
+ *  consistency improvement rather than fixing a visible bug. */
 const ClusterMarker = memo(function ClusterMarker({ cluster, onSelect }) {
   const position = useMemo(() => cluster.centroid, [cluster.centroid])
   const icon = useMemo(() => createClusterDivIcon(cluster.count), [cluster.count])
   const eventHandlers = useMemo(
     () => ({
+      mousedown: (event) => event.originalEvent.preventDefault(),
       click: (event) => {
         L.DomEvent.stopPropagation(event)
         onSelect(cluster)

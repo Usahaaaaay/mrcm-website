@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify'
-import { User, MapPin, Mail, FileText, Download } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { User, MapPin, Mail, FileText, Download, Notebook } from 'lucide-react'
 import { useAboutPublic } from '../../hooks/useAboutPublic'
 import { getSocialPlatform } from '../../lib/socialPlatforms'
 import { CategoryIcon } from '../../lib/categoryIcons'
@@ -54,35 +55,59 @@ const About = () => {
               </div>
             </div>
 
-            <div className="text-center">
-              {about.display_name ? <h3 className="font-display text-xl font-bold text-navy">{about.display_name}</h3> : null}
-              {about.job_title ? <p className="text-sm text-slate">{about.job_title}</p> : null}
-            </div>
-
-            {(about.location || about.email || about.resume_url) ? (
-              <div className="flex flex-col items-center gap-2 text-sm text-slate">
-                {about.location ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={14} className="text-lake" /> {about.location}
-                  </span>
-                ) : null}
-                {about.email ? (
-                  <a href={`mailto:${about.email}`} className="inline-flex items-center gap-1.5 hover:text-lake">
-                    <Mail size={14} className="text-lake" /> {about.email}
-                  </a>
-                ) : null}
-                {about.resume_url ? (
-                  <a
-                    href={about.resume_url}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-navy/12 px-4 py-2 text-xs font-medium text-navy hover:border-lake hover:text-lake"
-                  >
-                    <FileText size={13} /> Resume <Download size={12} />
-                  </a>
-                ) : null}
+            {/* Bundled into one flex child (rather than three separate ones)
+                so the Blog link's own tight ~14px margins govern the space
+                around it — the surrounding gap-6 on the parent Reveal (24px,
+                unchanged for photo <-> this block and this block <-> social
+                icons) would otherwise apply between it and its neighbors too. */}
+            <div className="flex flex-col items-center">
+              <div className="text-center">
+                {about.display_name ? <h3 className="font-display text-xl font-bold text-navy">{about.display_name}</h3> : null}
+                {about.job_title ? <p className="text-sm text-slate">{about.job_title}</p> : null}
               </div>
-            ) : null}
+
+              {/* Reached from here rather than primary navigation (see
+                  src/data/navigation.js) — intentional, so the site leads
+                  with "meet Mae" before "read the blog". Blog is its own
+                  route (/blog) rather than a homepage section, hence a real
+                  <Link> here instead of a hash anchor. Underline is
+                  `decoration-transparent` -> `decoration-current` (not a
+                  plain `hover:underline` toggle) specifically so it fades in
+                  smoothly with the color transition rather than snapping on. */}
+              <Link
+                to="/blog"
+                aria-label="View my blog articles"
+                className="mt-3.5 mb-3.5 inline-flex items-center gap-1.5 text-sm font-medium text-lake underline decoration-transparent underline-offset-4 transition-colors duration-200 hover:text-navy hover:decoration-current"
+              >
+                <Notebook size={14} />
+                Blog
+              </Link>
+
+              {(about.location || about.email || about.resume_url) ? (
+                <div className="flex flex-col items-center gap-2 text-sm text-slate">
+                  {about.location ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin size={14} className="text-lake" /> {about.location}
+                    </span>
+                  ) : null}
+                  {about.email ? (
+                    <a href={`mailto:${about.email}`} className="inline-flex items-center gap-1.5 hover:text-lake">
+                      <Mail size={14} className="text-lake" /> {about.email}
+                    </a>
+                  ) : null}
+                  {about.resume_url ? (
+                    <a
+                      href={about.resume_url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-navy/12 px-4 py-2 text-xs font-medium text-navy hover:border-lake hover:text-lake"
+                    >
+                      <FileText size={13} /> Resume <Download size={12} />
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
 
             {visibleSocialLinks.length > 0 ? (
               <ul className="flex items-center gap-3">

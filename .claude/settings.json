@@ -125,7 +125,17 @@
       "Bash(node test-selection2.mjs)",
       "Bash(node test-camera.mjs)",
       "Bash(node test-instrument.mjs)",
-      "Bash(node test-final.mjs)"
+      "Bash(node test-final.mjs)",
+      "Bash(node test-instrument2.mjs)",
+      "Bash(node test-final2.mjs)",
+      "Bash(node test-blog-link.mjs)",
+      "Bash(node test-hover-debug.mjs)",
+      "Bash(node test-mobile-shot.mjs)",
+      "Bash(taskkill //F //PID 64016)",
+      "Bash(taskkill //F //PID 27228)",
+      "Bash(node test-blog-restructure.mjs)",
+      "Bash(node test-blog-shot.mjs)",
+      "Bash(node test-zero-movement.mjs)"
     ],
     "additionalDirectories": [
       "C:\\Users\\mrcma\\OneDrive\\Documents\\Projects\\Personal Website\\supabase",

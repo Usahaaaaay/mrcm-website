@@ -47,7 +47,7 @@ const BlogNotFound = () => (
       This post may have been unpublished, moved, or the link may be incorrect. Take a look at the rest of the
       journal instead.
     </p>
-    <Button as={Link} to="/#blog" variant="primary" className="mt-2">
+    <Button as={Link} to="/blog" variant="primary" className="mt-2">
       Back to Blog
     </Button>
   </div>
@@ -65,7 +65,7 @@ const BlogPostPage = () => {
     <div className="min-h-screen bg-alpine px-6 pb-24 pt-28 sm:px-10">
       <div className="mx-auto max-w-3xl">
         <Link
-          to="/#blog"
+          to="/blog"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-lake hover:underline"
         >
           <ArrowLeft size={14} /> Back to Blog

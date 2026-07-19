@@ -147,7 +147,6 @@ const GuideLayout = ({
             back in ~500ms after they stop, so it's out of the way during
             actual map exploration without ever becoming untappable. */}
         <div
-          data-map-chrome="top"
           className={`pointer-events-none absolute inset-x-4 top-4 z-40 transition-opacity duration-300 md:hidden ${
             mapInteracting ? 'opacity-30' : 'opacity-100'
           }`}

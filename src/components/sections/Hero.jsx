@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 import Button from '../ui/Button'
 import LakeIllustration from '../graphics/LakeIllustration'
@@ -63,9 +64,12 @@ const Hero = () => (
         <Button as="a" href="#portfolio" variant="primary" icon={ArrowRight}>
           Explore My Work
         </Button>
+        {/* Blog is now its own route (/blog), not a homepage section — a
+            real <Link> rather than the "#id" anchor pattern the other Hero
+            buttons use, since there's nothing on this page to scroll to. */}
         <Button
-          as="a"
-          href="#blog"
+          as={Link}
+          to="/blog"
           variant="secondary"
           className="border-alpine/30 text-alpine hover:border-turquoise hover:text-turquoise"
         >

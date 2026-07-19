@@ -99,11 +99,6 @@ const BottomDrawer = ({ resultCount, children, className = '' }) => {
       onDragEnd={handleDragEnd}
       style={{ height: '90vh', touchAction: 'none' }}
       className={`fixed inset-x-0 bottom-0 z-30 flex flex-col rounded-t-3xl border-t border-navy/8 bg-snow shadow-lift ${className}`}
-      // Read by GuideMap's KeepSelectedVisible so a newly selected marker is
-      // nudged clear of however much of the sheet is currently peeking up
-      // (collapsed/half/full) — a real measurement of this element's actual
-      // rect, so it stays correct automatically as the sheet is dragged.
-      data-map-chrome="bottom"
     >
       <div
         onPointerDown={(event) => dragControls.start(event)}

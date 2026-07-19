@@ -22,6 +22,7 @@ const AboutEditor = lazy(() => import('./admin/pages/AboutEditor'))
 const TekapoGuidePage = lazy(() => import('./pages/TekapoGuidePage'))
 const TekapoJourney = lazy(() => import('./pages/TekapoJourney'))
 const DestinationDetailPage = lazy(() => import('./pages/DestinationDetailPage'))
+const BlogListPage = lazy(() => import('./pages/BlogListPage'))
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage'))
 
 const PageFallback = () => (
@@ -73,6 +74,17 @@ function App() {
               <Suspense fallback={<PageFallback />}>
                 <TekapoJourney />
               </Suspense>
+            }
+          />
+
+          <Route
+            path="/blog"
+            element={
+              <MainLayout>
+                <Suspense fallback={<PageFallback />}>
+                  <BlogListPage />
+                </Suspense>
+              </MainLayout>
             }
           />
 
