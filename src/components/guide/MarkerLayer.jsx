@@ -41,14 +41,29 @@ const DestinationMarker = memo(function DestinationMarker({ destination, lat, ln
   )
 
   return (
-    <Marker position={position} icon={icon} eventHandlers={eventHandlers}>
-      {/* autoPan disabled: FlyToSelected (GuideMap.jsx) already brings this
-          destination into view (only when it isn't already visible — see
-          that file) the instant it's selected. closeOnClick disabled:
-          Leaflet's Popup registers a map-level `preclick` handler that
-          closes it by default (meant for "click elsewhere on the map to
-          dismiss"); selecting a destination is the only supported way to
-          close this popup, so that trigger is unneeded here. */}
+    // autoPanOnFocus={false}: the actual, proven source of "the map still
+    // moves slightly on every marker tap" — Leaflet's Marker (not Popup) sets
+    // tabIndex=0 on its icon by default (options.keyboard) and, separately,
+    // wires a native DOM `focus` listener that calls map.panInside() whenever
+    // that icon receives focus (options.autoPanOnFocus, default true). A
+    // mouse/touch click on a focusable element focuses it as an ordinary
+    // browser side effect, so *every* marker tap fired this — entirely inside
+    // Leaflet's own Marker/Icon code, never touching React, onSelectLocation,
+    // or KeepSelectedVisible, which is exactly why fixing our own camera logic
+    // repeatedly never stopped the movement. Confirmed via
+    // console.trace-equivalent instrumentation on the live map: the captured
+    // stack was `map.panInside -> NewClass._panOnFocus -> HTMLDivElement
+    // 'focus' handler`, with zero frames from any of our own code. Popup's
+    // own autoPan (a separate, unrelated option) was already off and was
+    // never the cause.
+    <Marker position={position} icon={icon} eventHandlers={eventHandlers} autoPanOnFocus={false}>
+      {/* closeOnClick disabled: Leaflet's Popup registers a map-level
+          `preclick` handler that closes it by default (meant for "click
+          elsewhere on the map to dismiss"); selecting a destination is the
+          only supported way to close this popup, so that trigger is unneeded
+          here. autoPan disabled defensively — see MarkerLayer.jsx's
+          autoPanOnFocus note above for the real source of camera movement,
+          this just ensures Popup's own (separate) auto-pan option stays off too. */}
       <Popup minWidth={220} autoPan={false} closeOnClick={false}>
         <DestinationPopup destination={destination} />
       </Popup>
@@ -73,7 +88,10 @@ const ClusterMarker = memo(function ClusterMarker({ cluster, onSelect }) {
     [cluster, onSelect]
   )
 
-  return <Marker position={position} icon={icon} eventHandlers={eventHandlers} />
+  // autoPanOnFocus={false}: same reasoning as DestinationMarker above — this
+  // is also a focusable Leaflet Marker, so it's subject to the exact same
+  // focus-triggered map.panInside() side effect.
+  return <Marker position={position} icon={icon} eventHandlers={eventHandlers} autoPanOnFocus={false} />
 })
 
 // On-screen pixel radius (at the current zoom) within which two destinations

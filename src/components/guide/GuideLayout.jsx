@@ -3,7 +3,6 @@ import { AlertTriangle, Compass } from 'lucide-react'
 import GuideSearch from './GuideSearch'
 import GuideFilters from './GuideFilters'
 import FloatingSearch from './FloatingSearch'
-import CategoryScroller from './CategoryScroller'
 import FilterDrawer from './FilterDrawer'
 import BottomDrawer from './BottomDrawer'
 import DestinationCard from './DestinationCard'
@@ -67,6 +66,7 @@ const GuideLayout = ({
   onSortModeChange,
 }) => {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
+  const [mapInteracting, setMapInteracting] = useState(false)
 
   const listContent = (
     <>
@@ -113,8 +113,13 @@ const GuideLayout = ({
           : { marginTop: 'var(--site-header-height, 5rem)', height: 'calc(100vh - var(--site-header-height, 5rem))' }
       }
     >
+      {/* Mobile: the map is the primary surface (Google/Apple-Maps-style) —
+          a page title/description above it would just eat into that space
+          for no benefit, so it's dropped entirely below md. Unchanged on
+          tablet/desktop, where the map shares the screen with a sidebar and
+          the page still reads as a page. */}
       {!fullscreen ? (
-        <div className="border-b border-navy/8 px-6 py-5 sm:px-10">
+        <div className="hidden border-b border-navy/8 px-6 py-5 sm:px-10 md:block">
           <h1 className="font-display text-xl font-bold text-navy sm:text-2xl">Tekapo Guide</h1>
           <p className="mt-1 text-sm text-slate">
             Find toilets, parking, walking tracks, and the best stargazing spots around Lake Tekapo.
@@ -133,7 +138,20 @@ const GuideLayout = ({
           </aside>
         ) : null}
 
-        <div className="pointer-events-none absolute inset-x-4 top-4 z-40 flex flex-col gap-2 md:hidden">
+        {/* Category chips no longer sit here permanently — that row alone
+            cost a full strip of map height for something used occasionally.
+            FloatingSearch's own Filter button (badge shows the active count)
+            opens FilterDrawer instead, which is the single place mobile
+            category selection now lives (see requirement 4). Fades out
+            while the user is actively panning/zooming (mapInteracting) and
+            back in ~500ms after they stop, so it's out of the way during
+            actual map exploration without ever becoming untappable. */}
+        <div
+          data-map-chrome="top"
+          className={`pointer-events-none absolute inset-x-4 top-4 z-40 transition-opacity duration-300 md:hidden ${
+            mapInteracting ? 'opacity-30' : 'opacity-100'
+          }`}
+        >
           <div className="pointer-events-auto">
             <FloatingSearch
               value={search}
@@ -142,12 +160,17 @@ const GuideLayout = ({
               activeFilterCount={selectedCategories.length}
             />
           </div>
-          <div className="pointer-events-auto">
-            <CategoryScroller selected={selectedCategories} onToggle={onToggleCategory} />
-          </div>
         </div>
 
-        <div className={fullscreen ? 'h-full w-full' : 'relative h-[65vh] shrink-0 md:h-auto md:flex-1'}>
+        {/* h-[65vh] used to be needed here to visually reserve room below the
+            map (the title bar ate a fixed chunk up top, so the map itself was
+            deliberately capped rather than left to guess at the remainder).
+            Now that the title bar is gone on mobile (and BottomDrawer/
+            FloatingSearch are `fixed`/`absolute` overlays that never occupy
+            flex layout space), capping the map at 65vh only left a dead,
+            empty strip below it — flex-1 lets it fill the entire remaining
+            screen, which is the actual point of this redesign. */}
+        <div className={fullscreen ? 'h-full w-full' : 'relative flex-1'}>
           <GuideMap
             destinations={filteredDestinations}
             selectedId={selectedId}
@@ -157,6 +180,7 @@ const GuideLayout = ({
             onRequestLocation={onRequestLocation}
             fullscreen={fullscreen}
             onToggleFullscreen={onToggleFullscreen}
+            onInteractionChange={setMapInteracting}
           />
         </div>
 

@@ -2,17 +2,25 @@ import { useEffect, useReducer, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, useDragControls } from 'framer-motion'
 import { ChevronUp } from 'lucide-react'
+import { MOBILE_SHEET_COLLAPSED_PEEK_PX } from './mapConstants'
 
-// Percentage of the viewport height visible above the bottom edge at each
-// snap point. The sheet element itself is always SHEET_HEIGHT_VH tall; only
-// its vertical offset (y) changes, so a peek of map is always visible above
-// it even at 'full' — the map is never fully hidden by the drawer.
-const SNAP_VH = { collapsed: 25, half: 50, full: 90 }
+// Percentage of the viewport height visible above the bottom edge at the
+// 'half'/'full' snap points. The sheet element itself is always
+// SHEET_HEIGHT_VH tall; only its vertical offset (y) changes, so a peek of
+// map is always visible above it even at 'full' — the map is never fully
+// hidden by the drawer. 'collapsed' is deliberately NOT a percentage: it
+// peeks exactly MOBILE_SHEET_COLLAPSED_PEEK_PX (the handle/label row's own
+// height, nothing more) regardless of viewport size, so the default state is
+// just the grab handle — not a slice of the destination list peeking above it.
+const SNAP_VH = { half: 50, full: 90 }
 const SHEET_HEIGHT_VH = 90
 const SNAP_ORDER = ['collapsed', 'half', 'full']
 const FLING_VELOCITY_THRESHOLD = 500
 
-const yForSnap = (snap) => (window.innerHeight * (SHEET_HEIGHT_VH - SNAP_VH[snap])) / 100
+const yForSnap = (snap) =>
+  snap === 'collapsed'
+    ? (window.innerHeight * SHEET_HEIGHT_VH) / 100 - MOBILE_SHEET_COLLAPSED_PEEK_PX
+    : (window.innerHeight * (SHEET_HEIGHT_VH - SNAP_VH[snap])) / 100
 
 /**
  * Mobile-only draggable bottom sheet replacing the sidebar destination list.
@@ -91,10 +99,17 @@ const BottomDrawer = ({ resultCount, children, className = '' }) => {
       onDragEnd={handleDragEnd}
       style={{ height: '90vh', touchAction: 'none' }}
       className={`fixed inset-x-0 bottom-0 z-30 flex flex-col rounded-t-3xl border-t border-navy/8 bg-snow shadow-lift ${className}`}
+      // Read by GuideMap's KeepSelectedVisible so a newly selected marker is
+      // nudged clear of however much of the sheet is currently peeking up
+      // (collapsed/half/full) — a real measurement of this element's actual
+      // rect, so it stays correct automatically as the sheet is dragged.
+      data-map-chrome="bottom"
     >
       <div
         onPointerDown={(event) => dragControls.start(event)}
-        className="flex shrink-0 cursor-grab flex-col items-center gap-2 py-2.5 active:cursor-grabbing"
+        // Fixed h-16 (64px) — matches MOBILE_SHEET_COLLAPSED_PEEK_PX exactly,
+        // so the 'collapsed' snap peeks precisely this row and nothing else.
+        className="flex h-16 shrink-0 cursor-grab flex-col items-center justify-center gap-2 active:cursor-grabbing"
       >
         <span className="h-1.5 w-10 rounded-full bg-navy/15" aria-hidden="true" />
         <button
@@ -103,7 +118,7 @@ const BottomDrawer = ({ resultCount, children, className = '' }) => {
           className="flex items-center gap-1.5 text-sm font-semibold text-navy"
         >
           <ChevronUp size={16} className={`transition-transform ${snap === 'collapsed' ? '' : 'rotate-180'}`} />
-          Explore Tekapo &middot; {resultCount} {resultCount === 1 ? 'result' : 'results'}
+          Explore Tekapo &middot; {resultCount} {resultCount === 1 ? 'place' : 'places'}
         </button>
       </div>
 

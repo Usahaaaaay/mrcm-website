@@ -117,7 +117,15 @@
       "Bash(taskkill //F //PID 56764)",
       "Bash(cp \"C:\\\\Users\\\\mrcma\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-mrcma-OneDrive-Documents-Projects-Personal-Website\\\\6fc41f36-92d2-4117-9ebb-488127ef8afd\\\\scratchpad\\\\test-nav.mjs\" \"c:\\\\Users\\\\mrcma\\\\OneDrive\\\\Documents\\\\Projects\\\\Personal Website\\\\test-nav.mjs\")",
       "Bash(node test-nav.mjs)",
-      "Bash(taskkill //F //PID 35152)"
+      "Bash(taskkill //F //PID 35152)",
+      "Bash(node test-guide-mobile.mjs)",
+      "Bash(rm -f test-guide-mobile.mjs mobile-*.png desktop-guide.png)",
+      "Bash(taskkill //F //PID 32852)",
+      "Bash(node test-selection.mjs)",
+      "Bash(node test-selection2.mjs)",
+      "Bash(node test-camera.mjs)",
+      "Bash(node test-instrument.mjs)",
+      "Bash(node test-final.mjs)"
     ],
     "additionalDirectories": [
       "C:\\Users\\mrcma\\OneDrive\\Documents\\Projects\\Personal Website\\supabase",

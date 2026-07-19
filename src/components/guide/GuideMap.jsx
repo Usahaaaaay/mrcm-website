@@ -1,52 +1,138 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import L from 'leaflet'
-import { MapContainer, TileLayer, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { TEKAPO_CENTER, DEFAULT_ZOOM, FOCUS_ZOOM } from './mapConstants'
+import { TEKAPO_CENTER, DEFAULT_ZOOM } from './mapConstants'
 import MarkerLayer from './MarkerLayer'
 import FloatingButtons from './FloatingButtons'
 
+// Reports whether the user is actively panning/zooming, debounced so a brief
+// pause mid-gesture doesn't flicker the "settled" state back on. Lets
+// GuideLayout fade the floating search overlay out of the way while the user
+// is actually exploring the map, then smoothly restore it — mirroring the
+// "auto-hide while interacting" pattern of Google/Apple Maps — without
+// touching anything about how the map itself behaves.
+const MapInteractionReporter = ({ onInteractionChange }) => {
+  const settleTimeout = useRef(null)
+
+  const handleStart = () => {
+    if (settleTimeout.current) clearTimeout(settleTimeout.current)
+    onInteractionChange(true)
+  }
+  const handleEnd = () => {
+    if (settleTimeout.current) clearTimeout(settleTimeout.current)
+    settleTimeout.current = setTimeout(() => onInteractionChange(false), 500)
+  }
+
+  useMapEvents({
+    movestart: handleStart,
+    zoomstart: handleStart,
+    moveend: handleEnd,
+    zoomend: handleEnd,
+  })
+
+  useEffect(() => () => {
+    if (settleTimeout.current) clearTimeout(settleTimeout.current)
+  }, [])
+
+  return null
+}
+
+// Breathing room (px) kept between a marker and the edge of the "safe" area
+// — the map viewport minus whatever floating chrome currently overlaps it —
+// when nudging it into view.
+const VISIBILITY_MARGIN_PX = 24
+
+const getChromeRect = (attr) => {
+  const el = document.querySelector(`[data-map-chrome="${attr}"]`)
+  if (!el) return null
+  const rect = el.getBoundingClientRect()
+  // `display: none` (both are `md:hidden` on desktop/tablet) collapses every
+  // edge to 0 rather than making the element simply absent — indistinguishable
+  // from "a real element positioned at the origin" unless checked explicitly.
+  // Treated as "no chrome" here, which is what it actually means on desktop.
+  return rect.width === 0 && rect.height === 0 ? null : rect
+}
+
 /**
- * Brings a newly selected destination into view — but only ever pans/zooms
- * IN, never out, and does nothing at all if it's already comfortably
- * visible. This used to unconditionally `flyTo(..., FOCUS_ZOOM)` on every
- * selection, which is a regression once a destination can be selected by
- * clicking a marker that's already on screen at a deep zoom (e.g. one of a
- * spiderfied cluster's fanned-out members, shown at zoom >= 18): FOCUS_ZOOM
- * (15) is *lower* than the zoom spiderfying requires, so that flyTo was
- * always zooming straight back out the moment a spiderfied marker was
- * clicked — which in turn re-triggered clustering at the new, wider zoom
- * before the click's own selection/popup could register. Selecting from the
- * sidebar list or search while looking at a different part of the map still
- * needs to fly the view to it — that's the only case this still does.
+ * Brings an off-screen destination into view when it's selected from the
+ * sidebar list or search — and does absolutely nothing else. Never touches
+ * zoom, and (per `directTapRef`, set by GuideMap immediately before calling
+ * onSelectLocation for any direct marker/spiderfy tap) never moves the
+ * camera at all for a destination selected by tapping its own marker: that
+ * marker is inherently already on screen, since the user just tapped it
+ * there, and — like Google/Apple Maps — a tap should only ever change what
+ * the popup shows, never where the camera is looking. The same "already on
+ * screen" rule applies to a sidebar/search selection too: it only pans if
+ * the destination is genuinely outside the current view.
+ *
+ * This used to unconditionally `flyTo(..., FOCUS_ZOOM)` on every selection,
+ * then later a chrome-aware `panTo` nudge whenever the marker/popup was even
+ * slightly obstructed. Neither was actually the reason ordinary marker taps
+ * kept moving the camera afterwards, though — that turned out to be entirely
+ * outside this component. Confirmed by instrumenting every Leaflet
+ * camera-moving method plus movestart/zoomstart with a captured call stack:
+ * clicking a marker's icon gives it native DOM focus (it's a focusable
+ * `<div tabindex="0">`), and Leaflet's own `Marker` wires a `focus` listener
+ * that calls `map.panInside()` whenever that happens
+ * (`Marker.options.autoPanOnFocus`, defaults to `true`) — entirely inside
+ * Leaflet's Marker/Icon code, never touching onSelectLocation or this
+ * component. That's disabled per-marker in MarkerLayer.jsx now
+ * (`autoPanOnFocus={false}`), which is the actual fix; distinguishing
+ * direct-tap from sidebar/search selection here still matters for the one
+ * remaining legitimate case (an off-screen sidebar/search pick), but it was
+ * never what caused the on-screen-tap movement.
+ *
+ * "Off screen" for a sidebar/search pick still lands the destination inside
+ * a chrome-aware safe area (mobile's floating search pill / bottom sheet,
+ * read from the real DOM via `[data-map-chrome]` — see GuideLayout.jsx/
+ * BottomDrawer.jsx, naturally zero on desktop/tablet where both are
+ * `md:hidden`) rather than the raw viewport center, so it doesn't land
+ * behind either one.
  */
-const FlyToSelected = ({ destination }) => {
+const KeepSelectedVisible = ({ destination, directTapRef }) => {
   const map = useMap()
 
   useEffect(() => {
-    if (!destination) return
-
-    const target = L.latLng(destination.latitude, destination.longitude)
-    const currentZoom = map.getZoom()
-    const viewportBounds = map.getBounds()
-
-    // Already comfortably in view (not just barely, hugging an edge) — the
-    // user just interacted with this exact marker on screen. Moving the view
-    // at all here would be the surprising, unwanted "zooms back out" bug.
-    if (viewportBounds.pad(-0.25).contains(target)) return
-
-    // Visible, but close to an edge — a gentle pan (no zoom change) is
-    // enough to bring it fully into view.
-    if (viewportBounds.contains(target)) {
-      map.panTo(target, { animate: true, duration: 0.5 })
+    // Deselecting (e.g. tapping empty map, which also routes through the
+    // wrapped setter — see GuideMap.jsx) must not leave a stale `true` behind
+    // for the *next* selection to misread as "this one was a direct tap too".
+    if (!destination) {
+      directTapRef.current = false
       return
     }
 
-    // Not visible at all (e.g. selected from the sidebar/search while
-    // looking elsewhere) — fly to it, but never zoom OUT from wherever the
-    // user already was.
-    map.flyTo(target, Math.max(currentZoom, FOCUS_ZOOM), { duration: 0.75 })
-  }, [destination, map])
+    // Direct marker/spiderfy taps: the marker is already on screen by
+    // definition (it was just tapped), so the camera never moves — consume
+    // the flag and stop here, regardless of anything else.
+    if (directTapRef.current) {
+      directTapRef.current = false
+      return
+    }
+
+    const target = L.latLng(destination.latitude, destination.longitude)
+
+    // Sidebar/search pick, but already visible — leave the camera alone too.
+    if (map.getBounds().contains(target)) return
+
+    const mapRect = map.getContainer().getBoundingClientRect()
+    const topChrome = getChromeRect('top')
+    const bottomChrome = getChromeRect('bottom')
+    const topInset = topChrome ? Math.max(0, topChrome.bottom - mapRect.top) : 0
+    const bottomInset = bottomChrome ? Math.max(0, mapRect.bottom - bottomChrome.top) : 0
+
+    const safeLeft = VISIBILITY_MARGIN_PX
+    const safeRight = mapRect.width - VISIBILITY_MARGIN_PX
+    const safeTop = topInset + VISIBILITY_MARGIN_PX
+    const safeBottom = mapRect.height - bottomInset - VISIBILITY_MARGIN_PX
+
+    const targetPoint = map.latLngToContainerPoint(target)
+    const safeCenter = L.point((safeLeft + safeRight) / 2, (safeTop + safeBottom) / 2)
+    const currentCenterPoint = map.latLngToContainerPoint(map.getCenter())
+    const newCenterPoint = currentCenterPoint.add(L.point(targetPoint.x - safeCenter.x, targetPoint.y - safeCenter.y))
+
+    map.panTo(map.containerPointToLatLng(newCenterPoint), { animate: true, duration: 0.5 })
+  }, [destination, map, directTapRef])
 
   return null
 }
@@ -92,8 +178,25 @@ const GuideMap = ({
   onRequestLocation,
   fullscreen,
   onToggleFullscreen,
+  onInteractionChange = () => {},
 }) => {
   const selectedDestination = destinations.find((destination) => destination.id === selectedId) ?? null
+
+  // Set synchronously, in the same click that calls onSelectLocation — a ref
+  // rather than state because KeepSelectedVisible needs to read it the
+  // instant `destination` changes, not a render later. Only MarkerLayer's
+  // callback below sets it, so a sidebar/search selection (which calls the
+  // real onSelectLocation directly, never through this wrapper) always
+  // leaves it false, which is exactly the distinction KeepSelectedVisible
+  // needs to draw between the two.
+  const directTapRef = useRef(false)
+  const handleMapSelectLocation = useCallback(
+    (id) => {
+      directTapRef.current = true
+      onSelectLocation(id)
+    },
+    [onSelectLocation]
+  )
 
   return (
     <MapContainer
@@ -117,7 +220,7 @@ const GuideMap = ({
       <MarkerLayer
         destinations={destinations}
         selectedId={selectedId}
-        onSelectLocation={onSelectLocation}
+        onSelectLocation={handleMapSelectLocation}
         userLocation={userLocation}
       />
 
@@ -130,8 +233,9 @@ const GuideMap = ({
         onToggleFullscreen={onToggleFullscreen}
       />
 
-      <FlyToSelected destination={selectedDestination} />
+      <KeepSelectedVisible destination={selectedDestination} directTapRef={directTapRef} />
       <MapResizeHandler />
+      <MapInteractionReporter onInteractionChange={onInteractionChange} />
     </MapContainer>
   )
 }
