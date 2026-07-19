@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import L from 'leaflet'
 import { Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import { createCategoryDivIcon, createClusterDivIcon, createUserLocationDivIcon, createSelectionRingIcon } from './mapIcons'
@@ -25,13 +25,26 @@ const DestinationMarker = memo(function DestinationMarker({ destination, lat, ln
   // render, defeating the purpose.
   const position = useMemo(() => [lat, lng], [lat, lng])
   const icon = useMemo(() => createCategoryDivIcon(destination.categories[0]), [destination.categories])
-  const eventHandlers = useMemo(() => ({ click: () => onSelect(destination.id) }), [destination.id, onSelect])
+  // Leaflet markers don't bubble clicks to the map by default
+  // (bubblingMouseEvents: false), but stopping propagation explicitly here
+  // makes "a marker click can never be reinterpreted as a map/cluster click"
+  // an invariant of this handler rather than an implicit default — selecting
+  // a destination must always win, unconditionally.
+  const eventHandlers = useMemo(
+    () => ({
+      click: (event) => {
+        L.DomEvent.stopPropagation(event)
+        onSelect(destination.id)
+      },
+    }),
+    [destination.id, onSelect]
+  )
 
   return (
     <Marker position={position} icon={icon} eventHandlers={eventHandlers}>
-      {/* autoPan disabled: FlyToSelected (GuideMap.jsx) already re-centers
-          the map on this destination the instant it's selected, which
-          independently brings its popup into view. closeOnClick disabled:
+      {/* autoPan disabled: FlyToSelected (GuideMap.jsx) already brings this
+          destination into view (only when it isn't already visible — see
+          that file) the instant it's selected. closeOnClick disabled:
           Leaflet's Popup registers a map-level `preclick` handler that
           closes it by default (meant for "click elsewhere on the map to
           dismiss"); selecting a destination is the only supported way to
@@ -50,7 +63,15 @@ const DestinationMarker = memo(function DestinationMarker({ destination, lat, ln
 const ClusterMarker = memo(function ClusterMarker({ cluster, onSelect }) {
   const position = useMemo(() => cluster.centroid, [cluster.centroid])
   const icon = useMemo(() => createClusterDivIcon(cluster.count), [cluster.count])
-  const eventHandlers = useMemo(() => ({ click: () => onSelect(cluster) }), [cluster, onSelect])
+  const eventHandlers = useMemo(
+    () => ({
+      click: (event) => {
+        L.DomEvent.stopPropagation(event)
+        onSelect(cluster)
+      },
+    }),
+    [cluster, onSelect]
+  )
 
   return <Marker position={position} icon={icon} eventHandlers={eventHandlers} />
 })
@@ -104,41 +125,80 @@ function clusterDestinations(destinations, map) {
   return groups
 }
 
+const EMPTY_SET = new Set()
+
 /**
  * Rendered as a child of <MapContainer> (same pattern as FlyToSelected/
  * MapResizeHandler in GuideMap.jsx — call useMap() directly, no ref-forwarding
- * needed). Replaces the old inline `.map()` marker loop with clustering:
- * groups of one destination render exactly as before (identical <Marker>/
- * <Popup> JSX — preserves existing popup/routing behavior byte-for-byte),
- * groups of more than one render as a single cluster bubble that flies/zooms
- * into its bounds on click — or, if its members are too close together to
- * ever separate by zooming (see MAX_FLY_ZOOM), spiderfies into a small fan
- * of individually clickable markers instead.
+ * needed). Groups of one destination render exactly as before (identical
+ * <Marker>/<Popup> JSX), groups of more than one render as a single cluster
+ * bubble that flies/zooms into its bounds on click — or, if its members are
+ * too close together to ever separate by zooming (see MAX_FLY_ZOOM),
+ * spiderfies into a small fan of individually clickable markers instead.
+ *
+ * Spiderfy state (`spiderfy`) is deliberately independent from the live
+ * `clusters` computation below, not derived from it: it's a frozen snapshot
+ * (which member ids were fanned out, and around which centroid) taken once
+ * when a cluster is clicked. If it were instead re-derived every render by
+ * looking up "the cluster with this id" in the freshly recomputed `clusters`
+ * array, selecting one of its members would break that lookup immediately —
+ * clustering always excludes the selected destination (so its popup/ring
+ * never gets swallowed into a bubble), which changes that group's membership
+ * and therefore its id (`members.map(id).join('|')`) the instant a selection
+ * happens, on the very same render, before any zoom/pan even occurs. That
+ * was the actual mechanism behind "the spiderfy collapses the moment you
+ * click one of its markers" — not a timing/race issue, but an identity
+ * mismatch. A frozen snapshot has no such dependency on live membership, so
+ * selecting a member can never invalidate it — only the explicit exit
+ * conditions below (real zoom change, real pan away, background click,
+ * another cluster opened) can.
  */
 const MarkerLayer = ({ destinations, selectedId, onSelectLocation, userLocation }) => {
   const map = useMap()
   const [viewTick, setViewTick] = useState(0)
-  const [spiderfiedId, setSpiderfiedId] = useState(null)
+  const [spiderfy, setSpiderfy] = useState(null) // { memberIds: Set<string>, centroid: [lat,lng], zoomAtOpen: number } | null
 
   useMapEvents({
-    zoomend: () => setViewTick((tick) => tick + 1),
-    moveend: () => setViewTick((tick) => tick + 1),
+    zoomend: () => {
+      setViewTick((tick) => tick + 1)
+      // Exit condition: a real zoom level change. A programmatic flyTo that
+      // merely pans (or that FlyToSelected now skips entirely when the
+      // target is already visible — see GuideMap.jsx) won't fire this with a
+      // different zoom, so this only fires for a genuine zoom change.
+      setSpiderfy((current) => (current && map.getZoom() !== current.zoomAtOpen ? null : current))
+    },
+    moveend: () => {
+      setViewTick((tick) => tick + 1)
+      // Exit condition: a significant pan — the spiderfy's anchor point has
+      // left the viewport entirely, so its fanned members no longer make
+      // sense to keep showing.
+      setSpiderfy((current) => (current && !map.getBounds().contains(current.centroid) ? null : current))
+    },
+    // Exit condition: clicking empty map. Markers/clusters call
+    // stopPropagation in their own click handlers above, and Leaflet markers
+    // don't bubble clicks to the map by default (bubblingMouseEvents: false)
+    // — so this only ever fires for a genuine background click. Leaflet's
+    // Popup independently calls L.DomEvent.disableClickPropagation on its own
+    // content, so clicks inside an open popup (e.g. reading it, clicking a
+    // link) don't reach this handler either; the `closest` check below is
+    // just a defensive backstop for that same guarantee.
+    click: (event) => {
+      if (event.originalEvent?.target?.closest?.('.leaflet-popup')) return
+      onSelectLocation(null)
+      setSpiderfy(null)
+    },
   })
-
-  // Collapse any spiderfied cluster whenever the view pans/zooms or the
-  // destination set changes — clustering recomputes from scratch in either
-  // case, so a stale fan-out (pointing at screen positions from the old
-  // view) shouldn't persist.
-  useEffect(() => {
-    setSpiderfiedId(null)
-  }, [viewTick, destinations])
 
   const { singles, clusters, selected } = useMemo(() => {
     // The selected destination is never clustered away — if it got swallowed
     // into a cluster bubble after a zoom-out, its open popup would disappear,
-    // which is exactly the regression this must avoid.
+    // which is exactly the regression this must avoid. Members of an open
+    // spiderfy are also excluded here: they're rendered individually via
+    // `spiderfiedMembers` below, and must not simultaneously be regrouped
+    // into a cluster bubble by this computation while that's open.
     const selected = destinations.find((destination) => destination.id === selectedId) ?? null
-    const clusterable = destinations.filter((destination) => destination.id !== selectedId)
+    const spiderfiedIds = spiderfy?.memberIds ?? EMPTY_SET
+    const clusterable = destinations.filter((destination) => destination.id !== selectedId && !spiderfiedIds.has(destination.id))
 
     const groups = clusterDestinations(clusterable, map)
 
@@ -173,7 +233,7 @@ const MarkerLayer = ({ destinations, selectedId, onSelectLocation, userLocation 
 
     return { singles, clusters, selected }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destinations, selectedId, viewTick, map])
+  }, [destinations, selectedId, viewTick, map, spiderfy])
 
   const handleClusterClick = useCallback(
     (cluster) => {
@@ -187,8 +247,13 @@ const MarkerLayer = ({ destinations, selectedId, onSelectLocation, userLocation 
       // "we can't zoom in further to help," not "we're just barely fine."
       const requiredZoom = map.getBoundsZoom(cluster.bounds, false, L.point(64, 64))
       if (requiredZoom >= MAX_FLY_ZOOM) {
-        setSpiderfiedId(cluster.id)
+        setSpiderfy({
+          memberIds: new Set(cluster.members.map((destination) => destination.id)),
+          centroid: cluster.centroid,
+          zoomAtOpen: map.getZoom(),
+        })
       } else {
+        setSpiderfy(null) // opening a different, zoomable cluster supersedes any existing spiderfy
         map.flyToBounds(cluster.bounds, { padding: [64, 64], maxZoom: MAX_FLY_ZOOM, duration: 0.5 })
       }
     },
@@ -196,21 +261,28 @@ const MarkerLayer = ({ destinations, selectedId, onSelectLocation, userLocation 
   )
 
   // Fan a spiderfied cluster's members into a small ring of distinct screen
-  // positions around its centroid, converted back to real lat/lng at the
-  // current view — so each renders as a normal, individually clickable
-  // Marker/Popup rather than one fused bubble.
-  const spiderfiedCluster = clusters.find((cluster) => cluster.id === spiderfiedId) ?? null
+  // positions around its (frozen) centroid, converted back to real lat/lng at
+  // the current view. Each member's angular slot is based on its index within
+  // the *original, full* member list (captured once in `spiderfy.memberIds`,
+  // whose insertion order Set preserves) rather than the shrinking list of
+  // "members not yet selected" — so the remaining fanned markers hold their
+  // position instead of reflowing to fill the gap every time one is selected.
   const spiderfiedMembers = useMemo(() => {
-    if (!spiderfiedCluster) return []
-    const center = map.latLngToContainerPoint(spiderfiedCluster.centroid)
-    return spiderfiedCluster.members.map((destination, index) => {
-      const angle = (2 * Math.PI * index) / spiderfiedCluster.members.length
-      const point = L.point(center.x + SPIDERFY_RADIUS_PX * Math.cos(angle), center.y + SPIDERFY_RADIUS_PX * Math.sin(angle))
-      const latLng = map.containerPointToLatLng(point)
-      return { destination, position: [latLng.lat, latLng.lng] }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spiderfiedCluster, map])
+    if (!spiderfy) return []
+    const orderedIds = [...spiderfy.memberIds]
+    const center = map.latLngToContainerPoint(spiderfy.centroid)
+    return orderedIds
+      .map((id, index) => {
+        if (id === selectedId) return null // rendered via the normal selected/single path instead
+        const destination = destinations.find((entry) => entry.id === id)
+        if (!destination) return null
+        const angle = (2 * Math.PI * index) / orderedIds.length
+        const point = L.point(center.x + SPIDERFY_RADIUS_PX * Math.cos(angle), center.y + SPIDERFY_RADIUS_PX * Math.sin(angle))
+        const latLng = map.containerPointToLatLng(point)
+        return { destination, position: [latLng.lat, latLng.lng] }
+      })
+      .filter(Boolean)
+  }, [spiderfy, selectedId, destinations, map])
 
   return (
     <>
@@ -235,11 +307,9 @@ const MarkerLayer = ({ destinations, selectedId, onSelectLocation, userLocation 
         />
       ))}
 
-      {clusters
-        .filter((cluster) => cluster.id !== spiderfiedId)
-        .map((cluster) => (
-          <ClusterMarker key={cluster.id} cluster={cluster} onSelect={handleClusterClick} />
-        ))}
+      {clusters.map((cluster) => (
+        <ClusterMarker key={cluster.id} cluster={cluster} onSelect={handleClusterClick} />
+      ))}
 
       {spiderfiedMembers.map(({ destination, position }) => (
         <DestinationMarker

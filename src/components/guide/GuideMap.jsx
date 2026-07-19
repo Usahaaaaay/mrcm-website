@@ -1,17 +1,51 @@
 import { useEffect } from 'react'
+import L from 'leaflet'
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { TEKAPO_CENTER, DEFAULT_ZOOM, FOCUS_ZOOM } from './mapConstants'
 import MarkerLayer from './MarkerLayer'
 import FloatingButtons from './FloatingButtons'
 
+/**
+ * Brings a newly selected destination into view — but only ever pans/zooms
+ * IN, never out, and does nothing at all if it's already comfortably
+ * visible. This used to unconditionally `flyTo(..., FOCUS_ZOOM)` on every
+ * selection, which is a regression once a destination can be selected by
+ * clicking a marker that's already on screen at a deep zoom (e.g. one of a
+ * spiderfied cluster's fanned-out members, shown at zoom >= 18): FOCUS_ZOOM
+ * (15) is *lower* than the zoom spiderfying requires, so that flyTo was
+ * always zooming straight back out the moment a spiderfied marker was
+ * clicked — which in turn re-triggered clustering at the new, wider zoom
+ * before the click's own selection/popup could register. Selecting from the
+ * sidebar list or search while looking at a different part of the map still
+ * needs to fly the view to it — that's the only case this still does.
+ */
 const FlyToSelected = ({ destination }) => {
   const map = useMap()
 
   useEffect(() => {
-    if (destination) {
-      map.flyTo([destination.latitude, destination.longitude], FOCUS_ZOOM, { duration: 0.75 })
+    if (!destination) return
+
+    const target = L.latLng(destination.latitude, destination.longitude)
+    const currentZoom = map.getZoom()
+    const viewportBounds = map.getBounds()
+
+    // Already comfortably in view (not just barely, hugging an edge) — the
+    // user just interacted with this exact marker on screen. Moving the view
+    // at all here would be the surprising, unwanted "zooms back out" bug.
+    if (viewportBounds.pad(-0.25).contains(target)) return
+
+    // Visible, but close to an edge — a gentle pan (no zoom change) is
+    // enough to bring it fully into view.
+    if (viewportBounds.contains(target)) {
+      map.panTo(target, { animate: true, duration: 0.5 })
+      return
     }
+
+    // Not visible at all (e.g. selected from the sidebar/search while
+    // looking elsewhere) — fly to it, but never zoom OUT from wherever the
+    // user already was.
+    map.flyTo(target, Math.max(currentZoom, FOCUS_ZOOM), { duration: 0.75 })
   }, [destination, map])
 
   return null

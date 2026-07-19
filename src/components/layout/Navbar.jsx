@@ -2,11 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
-import { navLinks } from '../../data/navigation'
+import { visibleNavLinks } from '../../data/navigation'
 import { useActiveSection } from '../../hooks/useActiveSection'
 import { useScrollLock } from '../../hooks/useScrollLock'
 
-const sectionIds = navLinks.filter((link) => link.type === 'hash').map((link) => link.href.replace('/#', ''))
+const sectionIds = visibleNavLinks.filter((link) => link.type === 'hash').map((link) => link.href.replace('/#', ''))
 
 const isLinkActive = (link, pathname) => {
   if (link.type === 'route') {
@@ -82,7 +82,7 @@ const Navbar = () => {
         </Link>
 
         <ul className="hidden items-center gap-9 md:flex">
-          {navLinks.map((link) => {
+          {visibleNavLinks.map((link) => {
             const active = isActive(link)
             return (
               <li key={link.href}>
@@ -134,7 +134,7 @@ const Navbar = () => {
             className="overflow-hidden bg-alpine/95 backdrop-blur-md border-b border-navy/8 md:hidden"
           >
             <ul className="flex flex-col gap-1 px-6 pb-6 pt-2">
-              {navLinks.map((link) => {
+              {visibleNavLinks.map((link) => {
                 const active = isActive(link)
                 return (
                   <li key={link.href}>

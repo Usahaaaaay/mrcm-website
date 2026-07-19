@@ -6,7 +6,7 @@ import {
   Camera,
   Coffee,
   Fuel,
-  Siren,
+  BatteryCharging,
   Hammer,
   ShoppingCart,
   Truck,
@@ -48,7 +48,7 @@ export const LOCATION_CATEGORIES = [
   { value: 'activities', label: 'Activities', icon: Compass, color: '#B7791F', group: 'Attractions' },
 
   // Community & Safety
-  { value: 'emergency', label: 'Emergency', icon: Siren, color: '#DC2626', group: 'Community & Safety' },
+  { value: 'ev-charging-station', label: 'EV Charging Station', icon: BatteryCharging, color: '#22C55E', group: 'Community & Safety' },
   { value: 'fire-station', label: 'Fire Station', icon: Flame, color: '#C53030', group: 'Community & Safety' },
   { value: 'police-station', label: 'Police Station', icon: Shield, color: '#2B6CB0', group: 'Community & Safety' },
   { value: 'evacuation-spot', label: 'Evacuation Spot', icon: House, color: '#319795', group: 'Community & Safety' },

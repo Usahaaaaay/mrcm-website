@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { navLinks } from '../../data/navigation'
+import { visibleNavLinks } from '../../data/navigation'
 import { socialLinks } from '../../data/social'
 
 const Footer = () => (
@@ -10,7 +10,7 @@ const Footer = () => (
       </Link>
 
       <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm">
-        {navLinks.map((link) => (
+        {visibleNavLinks.map((link) => (
           <li key={link.href}>
             <Link to={link.href} className="transition-colors hover:text-turquoise">
               {link.label}
