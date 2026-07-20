@@ -135,7 +135,21 @@
       "Bash(taskkill //F //PID 27228)",
       "Bash(node test-blog-restructure.mjs)",
       "Bash(node test-blog-shot.mjs)",
-      "Bash(node test-zero-movement.mjs)"
+      "Bash(node test-zero-movement.mjs)",
+      "Bash(sleep 2 && cat /tmp/vite-instrument.log)",
+      "Bash(node test-instrument-full.mjs)",
+      "Bash(node test-instrument-full2.mjs)",
+      "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter \\\\\"name='node.exe'\\\\\" | Select-Object ProcessId,CommandLine | Format-Table -AutoSize -Wrap\")",
+      "Bash(git fetch *)",
+      "Bash(node test-deep-instrument.mjs)",
+      "Bash(node test-viewport-resize.mjs)",
+      "Bash(node test-viewport-resize2.mjs)",
+      "Bash(node test-final-verify.mjs)",
+      "Bash(node test-final-verify2.mjs)",
+      "Bash(node test-souvenir.mjs)",
+      "Bash(node test-souvenir2.mjs)",
+      "Bash(node test-marker-pixel.mjs)",
+      "Bash(node test-pane-transform.mjs)"
     ],
     "additionalDirectories": [
       "C:\\Users\\mrcma\\OneDrive\\Documents\\Projects\\Personal Website\\supabase",
