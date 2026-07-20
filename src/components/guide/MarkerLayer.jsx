@@ -11,13 +11,24 @@ import DestinationPopup from './DestinationPopup'
  * position={[lat,lng]} eventHandlers={{click:...}}>` creates a brand-new
  * array/object every time MarkerLayer re-renders (e.g. on every zoomend/
  * moveend-driven `viewTick` bump), even when nothing about this specific
- * destination changed. That was confirmed to cause react-leaflet to tear
- * down and recreate the marker's underlying Leaflet layer on unrelated
- * re-renders — which closes any popup bound to it as a natural consequence
- * of the layer being removed (verified via a stack trace: React's own
- * reconciliation calling react-leaflet's `removeLayer`, not any app code).
- * Stable references here mean react-leaflet sees "nothing changed" and
- * leaves the underlying marker/popup alone.
+ * destination changed, causing react-leaflet to tear down and recreate the
+ * marker's underlying Leaflet layer on unrelated re-renders. Stable
+ * references here mean react-leaflet sees "nothing changed" and leaves the
+ * underlying marker alone.
+ *
+ * This marker no longer carries its own bound `<Popup>`. Leaflet's default
+ * behaviour — opening a bound popup automatically from its own internal
+ * 'click' listener — only fires from a genuine click event reaching this
+ * exact marker instance, and only for selections that happen *via a marker
+ * click in the first place*; it never opens anything for a destination
+ * selected from search, the sidebar, or a filter narrowing to one result,
+ * and if a single click is ever swallowed/mistimed for any reason there is
+ * no fallback. `onSelect` here has exactly one job: report which
+ * destination was clicked. Whether the destination *information* is visible
+ * is decided in exactly one place — the standalone `<Popup>` rendered
+ * directly off `selected` at the bottom of `MarkerLayer`, below — so opening
+ * it can never depend on which interaction produced the selection, or on
+ * Leaflet's own click plumbing succeeding.
  */
 const DestinationMarker = memo(function DestinationMarker({ destination, lat, lng, onSelect }) {
   // Memoized on the raw numbers, not an array literal passed down from the
@@ -62,20 +73,7 @@ const DestinationMarker = memo(function DestinationMarker({ destination, lat, ln
     [destination.id, onSelect]
   )
 
-  return (
-    <Marker position={position} icon={icon} eventHandlers={eventHandlers} autoPanOnFocus={false}>
-      {/* closeOnClick disabled: Leaflet's Popup registers a map-level
-          `preclick` handler that closes it by default (meant for "click
-          elsewhere on the map to dismiss"); selecting a destination is the
-          only supported way to close this popup, so that trigger is unneeded
-          here. autoPan disabled defensively — see MarkerLayer.jsx's
-          autoPanOnFocus note above for the real source of camera movement,
-          this just ensures Popup's own (separate) auto-pan option stays off too. */}
-      <Popup minWidth={220} autoPan={false} closeOnClick={false}>
-        <DestinationPopup destination={destination} />
-      </Popup>
-    </Marker>
-  )
+  return <Marker position={position} icon={icon} eventHandlers={eventHandlers} autoPanOnFocus={false} />
 })
 
 /** Same reasoning as DestinationMarker — stable position/eventHandlers so an
@@ -158,11 +156,14 @@ const EMPTY_SET = new Set()
 /**
  * Rendered as a child of <MapContainer> (same pattern as FlyToSelected/
  * MapResizeHandler in GuideMap.jsx — call useMap() directly, no ref-forwarding
- * needed). Groups of one destination render exactly as before (identical
- * <Marker>/<Popup> JSX), groups of more than one render as a single cluster
- * bubble that flies/zooms into its bounds on click — or, if its members are
- * too close together to ever separate by zooming (see MAX_FLY_ZOOM),
- * spiderfies into a small fan of individually clickable markers instead.
+ * needed). Groups of one destination render as a single <DestinationMarker>,
+ * groups of more than one render as a single cluster bubble that flies/zooms
+ * into its bounds on click — or, if its members are too close together to
+ * ever separate by zooming (see MAX_FLY_ZOOM), spiderfies into a small fan of
+ * individually clickable markers instead. Whichever destination is selected
+ * (from any of those markers, or from search/sidebar/filters — see
+ * DestinationMarker's own comment above) gets its info shown via the single
+ * standalone <Popup> rendered directly below, driven purely by `selected`.
  *
  * Spiderfy state (`spiderfy`) is deliberately independent from the live
  * `clusters` computation below, not derived from it: it's a frozen snapshot
@@ -323,6 +324,23 @@ const MarkerLayer = ({ destinations, selectedId, onSelectLocation, userLocation 
           interactive={false}
           zIndexOffset={-1000}
         />
+      ) : null}
+
+      {/* The single source of truth for "is the destination info visible":
+          rendered standalone (not nested inside a <Marker>), so react-leaflet
+          opens it via its own mount effect (`instance.openOn(map)`) the
+          instant `selected` is set — regardless of *how* selection happened
+          (marker tap, spiderfied member, search, sidebar, or a filter
+          narrowing to one result) and regardless of whether Leaflet's own
+          click-driven popup-open would have fired for this interaction.
+          `key={selected.id}` forces a clean unmount+remount on every
+          selection change, so a newly-selected destination always gets a
+          fresh open rather than an update to a popup that may have been left
+          in an inconsistent internal state by the previous selection. */}
+      {selected ? (
+        <Popup key={selected.id} position={[selected.latitude, selected.longitude]} minWidth={220} autoPan={false} closeOnClick={false}>
+          <DestinationPopup destination={selected} />
+        </Popup>
       ) : null}
 
       {singles.map((destination) => (

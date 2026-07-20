@@ -17,6 +17,8 @@ import {
   House,
   Compass,
   MapPin,
+  Droplet,
+  Barrel,
 } from 'lucide-react'
 
 /**
@@ -34,7 +36,6 @@ export const LOCATION_CATEGORIES = [
   { value: 'parking', label: 'Parking', icon: CircleParking, color: '#102A43', group: 'Visitor Essentials' },
   { value: 'petrol-station', label: 'Petrol Station', icon: Fuel, color: '#2D6E92', group: 'Visitor Essentials' },
   { value: 'supermarket', label: 'Supermarket', icon: ShoppingCart, color: '#2F855A', group: 'Visitor Essentials' },
-  { value: 'hardware-shop', label: 'Hardware Shop', icon: Hammer, color: '#69B7C8', group: 'Visitor Essentials' },
 
   // Food & Drink
   { value: 'cafe', label: 'Cafe', icon: Coffee, color: '#B5654A', group: 'Food & Drink' },
@@ -47,21 +48,32 @@ export const LOCATION_CATEGORIES = [
   { value: 'walking-track', label: 'Walking Track', icon: Footprints, color: '#7C9070', group: 'Attractions' },
   { value: 'activities', label: 'Activities', icon: Compass, color: '#B7791F', group: 'Attractions' },
 
+  // Campervan Services
+  { value: 'fresh-water', label: 'Fresh Water', icon: Droplet, color: '#0EA5E9', group: 'Campervan Services' },
+  {
+    value: 'waste-water-dump-station',
+    label: 'Waste Water Dump Station',
+    icon: Barrel,
+    color: '#8B6F47',
+    group: 'Campervan Services',
+  },
+
   // Community & Safety
-  { value: 'ev-charging-station', label: 'EV Charging Station', icon: BatteryCharging, color: '#22C55E', group: 'Community & Safety' },
   { value: 'fire-station', label: 'Fire Station', icon: Flame, color: '#C53030', group: 'Community & Safety' },
   { value: 'police-station', label: 'Police Station', icon: Shield, color: '#2B6CB0', group: 'Community & Safety' },
   { value: 'evacuation-spot', label: 'Evacuation Spot', icon: House, color: '#319795', group: 'Community & Safety' },
+  { value: 'ev-charging-station', label: 'EV Charging Station', icon: BatteryCharging, color: '#22C55E', group: 'Community & Safety' },
 
-  // Shopping
-  { value: 'souvenir-shop', label: 'Souvenir Shop', icon: Gift, color: '#D53F8C', group: 'Shopping' },
+  // Shopping & Services
+  { value: 'souvenir-shop', label: 'Souvenir Shop', icon: Gift, color: '#D53F8C', group: 'Shopping & Services' },
+  { value: 'hardware-shop', label: 'Hardware Shop', icon: Hammer, color: '#69B7C8', group: 'Shopping & Services' },
 ]
 
 // Defines the display order of groups on the guide filters + admin dropdown.
 // Any category whose `group` isn't listed here still works everywhere (search,
 // markers, badges, validation) — it just lands in a trailing "More" group
 // instead of being silently dropped, so future additions can't fall through.
-const GROUP_ORDER = ['Visitor Essentials', 'Food & Drink', 'Attractions', 'Community & Safety', 'Shopping']
+const GROUP_ORDER = ['Visitor Essentials', 'Food & Drink', 'Attractions', 'Campervan Services', 'Community & Safety', 'Shopping & Services']
 const FALLBACK_GROUP = 'More'
 
 const FALLBACK_CATEGORY = { value: 'other', label: 'Other', icon: MapPin, color: '#4E5B61', group: FALLBACK_GROUP }

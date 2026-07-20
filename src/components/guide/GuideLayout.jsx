@@ -130,11 +130,24 @@ const GuideLayout = ({
       <div className="relative flex min-h-0 flex-1 flex-col md:flex-row">
         {!fullscreen ? (
           <aside className="hidden min-h-0 flex-col border-navy/8 md:flex md:w-[300px] md:shrink-0 md:border-r lg:w-[420px]">
-            <div className="flex flex-col gap-4 border-b border-navy/8 p-5">
-              <GuideSearch value={search} onChange={onSearchChange} />
-              <GuideFilters selected={selectedCategories} onToggle={onToggleCategory} />
+            {/* Search, filters, and the destination list all live inside ONE
+                scrollable region spanning the whole sidebar — rather than a
+                fixed-height header above a separately-scrolling list. A fixed
+                header can't shrink below its own content's natural height
+                (flexbox's default min-height:auto), so once the filter
+                groups above the list got tall enough (more categories/
+                groups), the header alone could exceed the sidebar's fixed
+                height and get clipped by the page's outer overflow-hidden —
+                exactly the "Souvenir Shop cut off at the bottom" bug. A
+                single scroll region has no such ceiling: it just scrolls,
+                regardless of how many categories/groups exist. */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <div className="flex flex-col gap-4 border-b border-navy/8 p-5">
+                <GuideSearch value={search} onChange={onSearchChange} />
+                <GuideFilters selected={selectedCategories} onToggle={onToggleCategory} />
+              </div>
+              <div className="flex flex-col gap-3 p-5">{listContent}</div>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">{listContent}</div>
           </aside>
         ) : null}
 
