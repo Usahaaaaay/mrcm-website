@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, useDragControls } from 'framer-motion'
 import { ChevronUp } from 'lucide-react'
@@ -17,6 +17,13 @@ const SHEET_HEIGHT_VH = 90
 const SNAP_ORDER = ['collapsed', 'half', 'full']
 const FLING_VELOCITY_THRESHOLD = 500
 
+// How far a pointer has to move before a touch on the list is treated as a
+// deliberate drag rather than a tap (so tapping a DestinationCard still
+// reaches its onClick) or as a genuine "pull down, nothing left to scroll"
+// gesture rather than scroll noise.
+const DRAG_HANDOFF_THRESHOLD_PX = 8
+const SCROLL_TOP_EPSILON = 2
+
 const yForSnap = (snap) =>
   snap === 'collapsed'
     ? (window.innerHeight * SHEET_HEIGHT_VH) / 100 - MOBILE_SHEET_COLLAPSED_PEEK_PX
@@ -27,8 +34,7 @@ const yForSnap = (snap) =>
  * Uses framer-motion's drag-controls pattern (dragListener={false} + a
  * dedicated handle strip that starts the drag via onPointerDown) rather than
  * drag="y" on the whole sheet, because the destination list inside must keep
- * native vertical touch-scroll at the half/full snap points — a naive
- * whole-sheet drag would compete with that scroll for the same gesture.
+ * native vertical touch-scroll — but only while fully expanded (see below).
  *
  * Portaled to document.body: this sheet is `position: fixed`, but
  * GuideLayout's root wrapper is `overflow-hidden` (needed so the map/sidebar
@@ -37,14 +43,49 @@ const yForSnap = (snap) =>
  * `position: fixed` resolving offsets against the viewport. Portaling
  * sidesteps that clipping entirely, the same reason FilterDrawer already
  * portals to document.body.
+ *
+ * The list's relationship with the drag gesture is snap-dependent, matching
+ * Google/Apple Maps rather than a naive "always scrollable" list:
+ *  - At 'half', the list must NOT scroll natively at all — any drag on it
+ *    (in either direction) moves the sheet between snap points instead, the
+ *    same as dragging the handle. touchAction:'none' stops the browser from
+ *    attempting native scroll there in the first place; a small pointer-move
+ *    threshold (not a bare pointerdown) is what actually invokes
+ *    dragControls.start(), so a plain tap still reaches DestinationCard's
+ *    onClick.
+ *  - At 'full', the list scrolls natively (touchAction:'pan-y', real
+ *    momentum/rubber-band scrolling — not reimplemented in JS) EXCEPT for one
+ *    case: if the list was already at scrollTop 0 when the gesture began and
+ *    the user keeps pulling down, there's nothing left for native scroll to
+ *    consume. touch-action lets the browser's compositor claim that gesture
+ *    for native (page) scroll before JS ever runs, and once claimed the
+ *    browser can stop delivering further pointer events for it — which is
+ *    why, without intervention, that specific gesture is the one that leaks
+ *    into page scroll and (on Chrome Android/Samsung Internet) pull-to-
+ *    refresh. The fix is a real, non-passive `addEventListener('pointermove',
+ *    ..., { passive: false })` (a JSX onPointerMove prop can be registered
+ *    passive by default, silently making preventDefault a no-op) that calls
+ *    event.preventDefault() at the exact moment of handoff — before the
+ *    browser commits to native scroll — then hands off to the SAME
+ *    dragControls/dragConstraints/handleDragEnd the handle already uses, so
+ *    the sheet collapses instead. This narrow, single-condition
+ *    preventDefault is the standard technique for nested
+ *    scroll-then-drag-to-dismiss sheets (used by Vaul, Radix's sheet
+ *    primitives, etc.) — not a general gesture-hijack.
  */
 const BottomDrawer = ({ resultCount, children, className = '' }) => {
   const dragControls = useDragControls()
   const [snap, setSnap] = useState('collapsed')
+  const snapRef = useRef(snap)
+  const listRef = useRef(null)
   // Forces a re-render (recomputing yForSnap against the new viewport height)
   // on resize/orientation change — the drag constraints/animate target
   // otherwise wouldn't know the viewport changed.
   const [, forceUpdate] = useReducer((tick) => tick + 1, 0)
+
+  useEffect(() => {
+    snapRef.current = snap
+  }, [snap])
 
   useEffect(() => {
     let frame = null
@@ -61,6 +102,66 @@ const BottomDrawer = ({ resultCount, children, className = '' }) => {
       if (frame) cancelAnimationFrame(frame)
     }
   }, [])
+
+  // One shared pointer-tracking listener set for both snap-dependent
+  // behaviors described in the class comment above — not two parallel
+  // mechanisms. Native listeners (not JSX props) so the 'full'-snap branch's
+  // preventDefault() is guaranteed non-passive.
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+
+    let startY = 0
+    let scrollTopAtStart = 0
+    let handedOff = false
+
+    const onPointerDown = (event) => {
+      startY = event.clientY
+      scrollTopAtStart = list.scrollTop
+      handedOff = false
+    }
+
+    const onPointerMove = (event) => {
+      if (handedOff) return
+      const deltaY = event.clientY - startY
+
+      if (snapRef.current !== 'full') {
+        // Not fully expanded: the list never scrolls (touchAction 'none'
+        // below already prevents native scroll attempts) — any deliberate
+        // drag in either direction hands off to the sheet, same as the handle.
+        if (Math.abs(deltaY) > DRAG_HANDOFF_THRESHOLD_PX) {
+          handedOff = true
+          dragControls.start(event)
+        }
+        return
+      }
+
+      // Fully expanded: let native scroll work normally unless the list was
+      // already at its top and the user keeps pulling down — the one
+      // gesture with nothing left for native scroll to consume.
+      const startedAtTop = scrollTopAtStart <= SCROLL_TOP_EPSILON
+      if (startedAtTop && list.scrollTop <= SCROLL_TOP_EPSILON && deltaY > DRAG_HANDOFF_THRESHOLD_PX) {
+        handedOff = true
+        event.preventDefault()
+        dragControls.start(event)
+      }
+    }
+
+    const onPointerUp = () => {
+      handedOff = false
+    }
+
+    list.addEventListener('pointerdown', onPointerDown, { passive: true })
+    list.addEventListener('pointermove', onPointerMove, { passive: false })
+    list.addEventListener('pointerup', onPointerUp, { passive: true })
+    list.addEventListener('pointercancel', onPointerUp, { passive: true })
+    return () => {
+      list.removeEventListener('pointerdown', onPointerDown)
+      list.removeEventListener('pointermove', onPointerMove)
+      list.removeEventListener('pointerup', onPointerUp)
+      list.removeEventListener('pointercancel', onPointerUp)
+    }
+  }, [dragControls])
 
   const handleDragEnd = (_event, info) => {
     const restingY = yForSnap(snap) + info.offset.y
@@ -97,7 +198,7 @@ const BottomDrawer = ({ resultCount, children, className = '' }) => {
       animate={{ y: yForSnap(snap) }}
       transition={{ type: 'spring', damping: 32, stiffness: 300 }}
       onDragEnd={handleDragEnd}
-      style={{ height: '90vh', touchAction: 'none' }}
+      style={{ height: '90vh', touchAction: 'none', overscrollBehavior: 'contain' }}
       className={`fixed inset-x-0 bottom-0 z-30 flex flex-col rounded-t-3xl border-t border-navy/8 bg-snow shadow-lift ${className}`}
     >
       <div
@@ -117,7 +218,11 @@ const BottomDrawer = ({ resultCount, children, className = '' }) => {
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-5" style={{ touchAction: 'pan-y' }}>
+      <div
+        ref={listRef}
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 pb-5"
+        style={{ touchAction: snap === 'full' ? 'pan-y' : 'none', overscrollBehavior: 'contain' }}
+      >
         {children}
       </div>
     </motion.div>,

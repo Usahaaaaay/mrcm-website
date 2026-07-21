@@ -106,7 +106,11 @@ const GuideLayout = ({
 
   return (
     <div
-      className={fullscreen ? 'fixed inset-0 z-[60] flex flex-col overflow-hidden bg-alpine' : 'flex flex-col overflow-hidden bg-alpine'}
+      className={
+        fullscreen
+          ? 'fixed inset-0 z-[60] flex flex-col overflow-hidden overscroll-contain bg-alpine'
+          : 'flex flex-col overflow-hidden overscroll-contain bg-alpine'
+      }
       style={
         fullscreen
           ? undefined

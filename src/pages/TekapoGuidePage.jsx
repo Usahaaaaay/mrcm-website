@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useDestinations } from '../hooks/useDestinations'
 import { useGeolocation } from '../hooks/useGeolocation'
+import { useIsMobileViewport } from '../hooks/useIsMobileViewport'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { haversineDistanceKm } from '../lib/geo'
 import { getLocationCategory } from '../lib/locationCategories'
@@ -22,8 +23,13 @@ const TekapoGuidePage = () => {
   const [fullscreen, setFullscreen] = useState(false)
   const [sortMode, setSortMode] = useState('alphabetical')
   const { coords: userLocation, status: geoStatus, requestLocation } = useGeolocation()
+  const isMobileViewport = useIsMobileViewport()
 
-  useScrollLock(fullscreen)
+  // Locked whenever fullscreen (any viewport, unchanged) OR on a mobile
+  // viewport at all (new) — on mobile this is an always-on, app-like view
+  // where the page body should never scroll, not just while fullscreen.
+  // Desktop's condition is unchanged: `fullscreen` alone.
+  useScrollLock(fullscreen || isMobileViewport)
 
   const toggleCategory = (value) =>
     setSelectedCategories((prev) => (prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]))
