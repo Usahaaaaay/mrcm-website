@@ -173,7 +173,19 @@
       "Bash(node test-category-reorg.mjs)",
       "Bash(node test-category-expand.mjs)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/)",
-      "Bash(node test-category-expand2.mjs)"
+      "Bash(node test-category-expand2.mjs)",
+      "Bash(npx oxlint *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(curl -s \"https://api.open-meteo.com/v1/forecast?latitude=-44.0068&longitude=170.4779&current=weather_code,cloud_cover,wind_speed_10m,precipitation,is_day&wind_speed_unit=kmh&precipitation_unit=mm&timezone=Pacific/Auckland\")",
+      "Bash(node \"C:\\\\Users\\\\mrcma\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-mrcma-OneDrive-Documents-Projects-Personal-Website\\\\c11b849e-6298-4a70-b401-86f2529e6efb\\\\scratchpad\\\\smoke-test.mjs\")",
+      "Bash(chromium-cli --help)",
+      "Bash(node \"C:\\\\Users\\\\mrcma\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-mrcma-OneDrive-Documents-Projects-Personal-Website\\\\c11b849e-6298-4a70-b401-86f2529e6efb\\\\scratchpad\\\\verify-hero.mjs\")",
+      "Bash(node verify-hero.tmp.mjs)",
+      "Bash(echo \"LINT_EXIT:$?\")",
+      "Bash(node verify-lighting.tmp.mjs)",
+      "Bash(rm -f verify-lighting.tmp.mjs)",
+      "Bash(node verify-clouds.tmp.mjs)",
+      "Bash(rm -f verify-clouds.tmp.mjs)"
     ],
     "additionalDirectories": [
       "C:\\Users\\mrcma\\OneDrive\\Documents\\Projects\\Personal Website\\supabase",

@@ -1,3 +1,20 @@
+import { DEFAULT_ENVIRONMENT } from '../../lib/environment/defaultEnvironment'
+import { deriveLighting } from '../../lib/environment/deriveLighting'
+import { deriveClouds } from '../../lib/environment/deriveClouds'
+import { deriveRain } from '../../lib/environment/deriveRain'
+import Rain from './Rain'
+
+/**
+ * @typedef {import('../../types/environment.js').EnvironmentState} EnvironmentState
+ * @typedef {import('../../lib/environment/deriveLighting.js').LightingConfig} LightingConfig
+ * @typedef {import('../../lib/environment/deriveClouds.js').CloudConfig} CloudConfig
+ * @typedef {import('../../lib/environment/deriveRain.js').RainState} RainState
+ */
+
+const DEFAULT_LIGHTING = deriveLighting(DEFAULT_ENVIRONMENT)
+const DEFAULT_CLOUDS = deriveClouds(DEFAULT_ENVIRONMENT)
+const DEFAULT_RAIN = deriveRain(DEFAULT_ENVIRONMENT)
+
 const Star = ({ cx, cy, r, delay }) => (
   <circle
     cx={cx}
@@ -16,15 +33,89 @@ const stars = Array.from({ length: 46 }, (_, i) => ({
   delay: (i % 10) * 0.4,
 }))
 
+// Hand-placed positions/sizes for the cloud layer — a rendering/artwork
+// concern owned here, same as `stars` above. How visible each slot is
+// comes entirely from CloudConfig.puffs[i] (src/lib/environment/deriveClouds.js);
+// this component does no cloud-density math of its own. Order matches
+// CLOUD_SLOT_COUNT in deriveClouds.js.
+const CLOUD_SLOTS = [
+  { cx: 180, cy: 150, rx: 90, ry: 34 },
+  { cx: 420, cy: 90, rx: 110, ry: 40 },
+  { cx: 680, cy: 190, rx: 80, ry: 30 },
+  { cx: 900, cy: 110, rx: 120, ry: 42 },
+  { cx: 1080, cy: 220, rx: 95, ry: 34 },
+  { cx: 300, cy: 240, rx: 100, ry: 36 },
+  { cx: 560, cy: 60, rx: 85, ry: 30 },
+  { cx: 1260, cy: 265, rx: 105, ry: 38 },
+]
+
+/** A single soft, flat-illustration cloud puff — three overlapping ellipses
+ *  sharing the `cloudPuff` gradient, in the same "soft blob" technique the
+ *  moon glow already uses. Visibility/size/softness are the only things
+ *  that change; the shape itself is fixed, like every other artwork element. */
+const Cloud = ({ slot, opacity, scale, softnessPx }) => (
+  <g
+    className="hero-cloud"
+    style={{
+      opacity,
+      transform: `scale(${scale})`,
+      transformOrigin: `${slot.cx}px ${slot.cy}px`,
+      filter: `blur(${softnessPx}px)`,
+    }}
+  >
+    <ellipse cx={slot.cx} cy={slot.cy} rx={slot.rx} ry={slot.ry} fill="url(#cloudPuff)" />
+    <ellipse
+      cx={slot.cx - slot.rx * 0.55}
+      cy={slot.cy + slot.ry * 0.15}
+      rx={slot.rx * 0.6}
+      ry={slot.ry * 0.7}
+      fill="url(#cloudPuff)"
+      opacity="0.85"
+    />
+    <ellipse
+      cx={slot.cx + slot.rx * 0.6}
+      cy={slot.cy + slot.ry * 0.1}
+      rx={slot.rx * 0.65}
+      ry={slot.ry * 0.75}
+      fill="url(#cloudPuff)"
+      opacity="0.85"
+    />
+  </g>
+)
+
 /**
  * A minimal, non-literal landscape inspired by Lake Tekapo: dark sky fading to
  * an alpine dawn, layered mountains, a still lake, and a scattering of pines.
+ *
+ * Accepts the scene's EnvironmentState — still unused directly (Phase 2B.1
+ * only reads it indirectly, via the derived `lighting` prop; weather/effects
+ * branching is still future-phase work) — and a LightingConfig (Phase 2B.1)
+ * applied as a CSS brightness/saturation filter plus a single translucent
+ * color-grade wash on top of the fixed artwork below. The artwork itself
+ * (shapes, gradients, moon, stars) is never repainted — only lit differently
+ * — so composition stays identical to Phase 1 across every time of day.
+ *
+ * Also renders a cloud layer (Phase 2B.2) driven by a CloudConfig — puffs
+ * built from the same fixed shapes/positions regardless of density; only
+ * their opacity/scale/softness change, so composition never shifts.
+ *
+ * Also renders a rain layer (Phase 2B.3A, see graphics/Rain.jsx) driven by
+ * a RainState. LakeIllustration stays presentation-only here too — it just
+ * places <Rain> in the scene; Rain owns its own particle animation.
+ *
+ * @param {{ environment?: EnvironmentState, lighting?: LightingConfig, clouds?: CloudConfig, rain?: RainState }} props
  */
-const LakeIllustration = () => (
+const LakeIllustration = ({
+  environment = DEFAULT_ENVIRONMENT,
+  lighting = DEFAULT_LIGHTING,
+  clouds = DEFAULT_CLOUDS,
+  rain = DEFAULT_RAIN,
+}) => (
   <svg
     viewBox="0 0 1440 800"
     preserveAspectRatio="xMidYMax slice"
-    className="absolute inset-0 h-full w-full"
+    className="hero-lighting absolute inset-0 h-full w-full"
+    style={{ filter: `brightness(${lighting.exposure}) saturate(${lighting.saturation})` }}
     role="img"
     aria-label="Illustration of mountains and a still lake beneath a starlit sky, inspired by Lake Tekapo"
   >
@@ -55,6 +146,11 @@ const LakeIllustration = () => (
         <stop offset="0%" stopColor="#FAFAF8" stopOpacity="0.9" />
         <stop offset="100%" stopColor="#FAFAF8" stopOpacity="0" />
       </radialGradient>
+
+      <radialGradient id="cloudPuff" cx="50%" cy="45%" r="55%">
+        <stop offset="0%" stopColor="#F3F6F8" stopOpacity="0.95" />
+        <stop offset="100%" stopColor="#F3F6F8" stopOpacity="0" />
+      </radialGradient>
     </defs>
 
     {/* sky */}
@@ -70,6 +166,20 @@ const LakeIllustration = () => (
     {/* moon */}
     <circle cx="1180" cy="120" r="90" fill="url(#moonGlow)" />
     <circle cx="1180" cy="120" r="34" fill="#FAFAF8" opacity="0.9" />
+
+    {/* clouds — visibility/size/softness driven by `clouds` (CloudConfig);
+        positions/shapes are fixed, same artwork regardless of density */}
+    <g aria-hidden="true">
+      {CLOUD_SLOTS.map((slot, i) => (
+        <Cloud
+          key={i}
+          slot={slot}
+          opacity={(clouds.puffs[i]?.opacity ?? 0) * clouds.opacity}
+          scale={clouds.scale}
+          softnessPx={clouds.softnessPx}
+        />
+      ))}
+    </g>
 
     {/* back mountain range */}
     <path
@@ -115,6 +225,24 @@ const LakeIllustration = () => (
       <path d="M1300,600 L1318,548 L1336,600 Z" />
       <path d="M1350,600 L1364,568 L1378,600 Z" />
     </g>
+
+    {/* rain — visibility/intensity driven by `rain`; renders nothing when
+        rain.enabled is false. Placed before the lighting wash so it's
+        naturally tinted/dimmed by the same overlay as the rest of the scene. */}
+    <Rain rain={rain} />
+
+    {/* lighting wash — a single translucent overlay for the whole scene,
+        driven by `lighting`; everything above is the fixed Phase 1 artwork */}
+    <rect
+      x="0"
+      y="0"
+      width="1440"
+      height="800"
+      fill={lighting.tintColor}
+      opacity={lighting.tintOpacity}
+      className="hero-lighting-tint"
+      aria-hidden="true"
+    />
   </svg>
 )
 

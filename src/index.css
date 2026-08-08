@@ -59,6 +59,29 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-navy);
 }
 
+/* Hero dynamic lighting (Phase 2B.1) — eases the Hero scene between
+   LightingConfig presets (src/lib/environment/deriveLighting.js) instead of
+   snapping. Values (filter, fill, opacity) are set inline per-render; only
+   the transition timing lives here. */
+.hero-lighting {
+  transition: filter 1.2s ease-out;
+}
+.hero-lighting-tint {
+  transition: fill 1.2s ease-out, opacity 1.2s ease-out;
+}
+/* Hero dynamic clouds (Phase 2B.2) — same timing/strategy as the lighting
+   transitions above, applied to each cloud puff's opacity/scale/softness. */
+.hero-cloud {
+  transition: opacity 1.2s ease-out, transform 1.2s ease-out, filter 1.2s ease-out;
+}
+/* Hero rain (Phase 2B.3A) — only opacity transitions (eases particle count
+   in/out as intensity changes); `transform` is deliberately excluded here,
+   since Rain.jsx drives it every frame via requestAnimationFrame and a CSS
+   transition on the same property would fight that. */
+.hero-rain-drop {
+  transition: opacity 1.2s ease-out;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-lake);
   outline-offset: 3px;
