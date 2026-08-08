@@ -185,7 +185,12 @@
       "Bash(node verify-lighting.tmp.mjs)",
       "Bash(rm -f verify-lighting.tmp.mjs)",
       "Bash(node verify-clouds.tmp.mjs)",
-      "Bash(rm -f verify-clouds.tmp.mjs)"
+      "Bash(rm -f verify-clouds.tmp.mjs)",
+      "Bash(node verify-snow.tmp.mjs)",
+      "Bash(node verify-snow-determinism.tmp.mjs)",
+      "Bash(rm -f verify-snow.tmp.mjs verify-snow-determinism.tmp.mjs)",
+      "Bash(node verify-stars.tmp.mjs)",
+      "Bash(rm -f verify-stars.tmp.mjs)"
     ],
     "additionalDirectories": [
       "C:\\Users\\mrcma\\OneDrive\\Documents\\Projects\\Personal Website\\supabase",

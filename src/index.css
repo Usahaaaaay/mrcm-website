@@ -81,6 +81,25 @@ h1, h2, h3, h4, h5, h6 {
 .hero-rain-drop {
   transition: opacity 1.2s ease-out;
 }
+/* Hero snow (Phase 2B.3B) — same reasoning as .hero-rain-drop: opacity-only,
+   since Snow.jsx drives `transform` itself every frame via requestAnimationFrame. */
+.hero-snow-flake {
+  transition: opacity 1.2s ease-out;
+}
+/* Hero sky gradient (Phase 2C) — recomputed roughly once a minute
+   (src/hooks/useNow.js), not per weather refresh like the layers above, so
+   each step is already tiny; a longer, linear transition turns that into a
+   visibly gentle drift rather than a snap. */
+.hero-sky-stop {
+  transition: stop-color 6s linear;
+}
+/* Hero stars — deliberately slower than the weather-reactive layers above
+   (1.2s): stars "should never suddenly appear," so fading in/out is meant to
+   read as a slow celestial process, paced closer to the sky gradient than
+   to weather. Recomputed roughly once a minute alongside `sky`. */
+.hero-star {
+  transition: opacity 4s ease;
+}
 
 :focus-visible {
   outline: 2px solid var(--color-lake);

@@ -3,35 +3,28 @@ import { deriveLighting } from '../../lib/environment/deriveLighting'
 import { deriveClouds } from '../../lib/environment/deriveClouds'
 import { deriveRain } from '../../lib/environment/deriveRain'
 import Rain from './Rain'
+import { deriveSnow } from '../../lib/environment/deriveSnow'
+import Snow from './Snow'
+import { deriveSky } from '../../lib/environment/deriveSky'
+import { deriveStars } from '../../lib/environment/deriveStars'
+import Stars from './Stars'
 
 /**
  * @typedef {import('../../types/environment.js').EnvironmentState} EnvironmentState
  * @typedef {import('../../lib/environment/deriveLighting.js').LightingConfig} LightingConfig
  * @typedef {import('../../lib/environment/deriveClouds.js').CloudConfig} CloudConfig
  * @typedef {import('../../lib/environment/deriveRain.js').RainState} RainState
+ * @typedef {import('../../lib/environment/deriveSnow.js').SnowState} SnowState
+ * @typedef {import('../../lib/environment/deriveSky.js').SkyState} SkyState
+ * @typedef {import('../../lib/environment/deriveStars.js').StarsState} StarsState
  */
 
 const DEFAULT_LIGHTING = deriveLighting(DEFAULT_ENVIRONMENT)
 const DEFAULT_CLOUDS = deriveClouds(DEFAULT_ENVIRONMENT)
 const DEFAULT_RAIN = deriveRain(DEFAULT_ENVIRONMENT)
-
-const Star = ({ cx, cy, r, delay }) => (
-  <circle
-    cx={cx}
-    cy={cy}
-    r={r}
-    fill="#FAFAF8"
-    className="animate-twinkle"
-    style={{ animationDelay: `${delay}s` }}
-  />
-)
-
-const stars = Array.from({ length: 46 }, (_, i) => ({
-  cx: (i * 137 + 40) % 1440,
-  cy: ((i * 71) % 260) + 20,
-  r: [0.6, 0.9, 1.3, 1.6][i % 4],
-  delay: (i % 10) * 0.4,
-}))
+const DEFAULT_SNOW = deriveSnow(DEFAULT_ENVIRONMENT)
+const DEFAULT_SKY = deriveSky(DEFAULT_ENVIRONMENT)
+const DEFAULT_STARS = deriveStars(DEFAULT_ENVIRONMENT)
 
 // Hand-placed positions/sizes for the cloud layer — a rendering/artwork
 // concern owned here, same as `stars` above. How visible each slot is
@@ -100,16 +93,32 @@ const Cloud = ({ slot, opacity, scale, softnessPx }) => (
  * their opacity/scale/softness change, so composition never shifts.
  *
  * Also renders a rain layer (Phase 2B.3A, see graphics/Rain.jsx) driven by
- * a RainState. LakeIllustration stays presentation-only here too — it just
- * places <Rain> in the scene; Rain owns its own particle animation.
+ * a RainState, and a snow layer (Phase 2B.3B, see graphics/Snow.jsx) driven
+ * by a SnowState — deriveRain()/deriveSnow() guarantee at most one of the
+ * two is ever enabled at once. LakeIllustration stays presentation-only for
+ * both: it just places <Rain>/<Snow> in the scene; each owns its own
+ * particle animation.
  *
- * @param {{ environment?: EnvironmentState, lighting?: LightingConfig, clouds?: CloudConfig, rain?: RainState }} props
+ * Also renders the sky gradient (Phase 2C, see lib/environment/deriveSky.js)
+ * driven by a SkyState — `sky.stops` is pre-computed, so this component does
+ * no color math itself, just maps it onto the existing 4-stop <linearGradient>.
+ *
+ * Also renders the star field (see lib/environment/deriveStars.js) driven by
+ * a StarsState — replaces the fixed 46-star array this file originally had
+ * (Phase 1 artwork, always-on regardless of time/weather); <Stars> sits in
+ * the same position in the tree and owns its own ~1,100-star layout, which
+ * is generated once at module load, not here or per render.
+ *
+ * @param {{ environment?: EnvironmentState, lighting?: LightingConfig, clouds?: CloudConfig, rain?: RainState, snow?: SnowState, sky?: SkyState, stars?: StarsState }} props
  */
 const LakeIllustration = ({
   environment = DEFAULT_ENVIRONMENT,
   lighting = DEFAULT_LIGHTING,
   clouds = DEFAULT_CLOUDS,
   rain = DEFAULT_RAIN,
+  snow = DEFAULT_SNOW,
+  sky = DEFAULT_SKY,
+  stars = DEFAULT_STARS,
 }) => (
   <svg
     viewBox="0 0 1440 800"
@@ -121,10 +130,9 @@ const LakeIllustration = ({
   >
     <defs>
       <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#102A43" />
-        <stop offset="42%" stopColor="#1C4A66" />
-        <stop offset="72%" stopColor="#2D6E92" />
-        <stop offset="100%" stopColor="#FAFAF8" />
+        {sky.stops.map((stop) => (
+          <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} className="hero-sky-stop" />
+        ))}
       </linearGradient>
 
       <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1">
@@ -156,12 +164,10 @@ const LakeIllustration = ({
     {/* sky */}
     <rect x="0" y="0" width="1440" height="800" fill="url(#sky)" />
 
-    {/* stars */}
-    <g>
-      {stars.map((s, i) => (
-        <Star key={i} {...s} />
-      ))}
-    </g>
+    {/* stars — visibility driven by `stars` (StarsState); positions are a
+        fixed, deterministic layout generated once (see deriveStars.js),
+        never regenerated here */}
+    <Stars stars={stars} />
 
     {/* moon */}
     <circle cx="1180" cy="120" r="90" fill="url(#moonGlow)" />
@@ -180,6 +186,12 @@ const LakeIllustration = ({
         />
       ))}
     </g>
+
+    {/* snow — visibility/intensity driven by `snow`; renders nothing when
+        snow.enabled is false. Layered here deliberately (sky/clouds → snow →
+        mountains), not after the landscape like rain — falling flakes are
+        meant to disappear behind the mountain silhouette below, painted next. */}
+    <Snow snow={snow} />
 
     {/* back mountain range */}
     <path

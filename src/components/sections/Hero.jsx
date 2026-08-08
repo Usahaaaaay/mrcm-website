@@ -6,9 +6,14 @@ import Button from '../ui/Button'
 import LakeIllustration from '../graphics/LakeIllustration'
 import FloatingParticles from '../graphics/FloatingParticles'
 import { useEnvironmentState } from '../../hooks/useEnvironmentState'
+import { useNow } from '../../hooks/useNow'
 import { deriveLighting } from '../../lib/environment/deriveLighting'
 import { deriveClouds } from '../../lib/environment/deriveClouds'
 import { deriveRain } from '../../lib/environment/deriveRain'
+import { deriveSnow } from '../../lib/environment/deriveSnow'
+import { deriveCelestial } from '../../lib/environment/deriveCelestial'
+import { deriveSky } from '../../lib/environment/deriveSky'
+import { deriveStars } from '../../lib/environment/deriveStars'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -42,12 +47,48 @@ const Hero = () => {
   // of the three derive functions read each other's output, only `environment`.
   const rain = useMemo(() => deriveRain(environment), [environment])
 
+  // Same pattern once more — see src/lib/environment/deriveSnow.js. `rain`
+  // and `snow` are both derived independently from `environment.precipitation`,
+  // which deriveEnvironment() guarantees is exactly one of 'none'/'rain'/'snow' —
+  // so the two are mutually exclusive by construction, not by coordination here.
+  const snow = useMemo(() => deriveSnow(environment), [environment])
+
+  // The sky gradient (Phase 2C) needs a genuinely continuous clock, not just
+  // the ~12-minute EnvironmentState refresh cadence — see deriveSky.js's doc
+  // comment for why. `now` ticks once a minute.
+  const now = useNow(60_000)
+
+  // The shared "what time is it / how much daylight is there" state
+  // (Celestial Architecture Refactor) — see deriveCelestial.js. Computed
+  // once here so every current and future celestial derive function
+  // (deriveSky today; deriveStars/deriveMoon/etc. later) reads the same
+  // CelestialState instead of each deriving Tekapo's local time itself.
+  const celestial = useMemo(() => deriveCelestial(now), [now])
+
+  // `sky` only recomputes (and the SVG's stop-color CSS transition only
+  // eases) when `celestial` actually changes — same cadence as before this
+  // refactor, just routed through the shared state instead of a raw Date.
+  const sky = useMemo(() => deriveSky(environment, celestial), [environment, celestial])
+
+  // Same shared `celestial` feeds the star field too — see deriveStars.js.
+  // Star *positions* are generated once at module load, never here; this
+  // only recomputes the single `visibility` number.
+  const stars = useMemo(() => deriveStars(environment, celestial), [environment, celestial])
+
   return (
     <section
       id="home"
       className="relative flex min-h-[100svh] items-center overflow-hidden bg-navy"
     >
-      <LakeIllustration environment={environment} lighting={lighting} clouds={clouds} rain={rain} />
+      <LakeIllustration
+        environment={environment}
+        lighting={lighting}
+        clouds={clouds}
+        rain={rain}
+        snow={snow}
+        sky={sky}
+        stars={stars}
+      />
       <FloatingParticles environment={environment} />
 
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-6 pt-28 pb-40 text-center sm:px-10">
