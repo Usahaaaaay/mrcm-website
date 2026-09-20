@@ -4,6 +4,8 @@ export const accentGradients = {
   navy: 'from-navy/80 via-lake/40 to-navy/90',
   gold: 'from-gold/20 via-cloud to-lake/10',
   slate: 'from-slate/15 via-cloud to-lake/10',
+  // Little Lantern Studios only — see src/index.css's `lantern-*` tokens.
+  lantern: 'from-lantern-glow/20 via-lantern-paper to-lantern-ember/10',
 }
 
 export const accentText = {
@@ -12,6 +14,7 @@ export const accentText = {
   navy: 'text-navy',
   gold: 'text-gold',
   slate: 'text-slate',
+  lantern: 'text-lantern-ember',
 }
 
 export const accentBg = {
@@ -20,4 +23,5 @@ export const accentBg = {
   navy: 'bg-navy',
   gold: 'bg-gold',
   slate: 'bg-slate',
+  lantern: 'bg-lantern-glow',
 }

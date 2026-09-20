@@ -8,6 +8,10 @@ import Snow from './Snow'
 import { deriveSky } from '../../lib/environment/deriveSky'
 import { deriveStars } from '../../lib/environment/deriveStars'
 import Stars from './Stars'
+import { deriveMilkyWay, MILKY_WAY_PALETTE } from '../../lib/environment/deriveMilkyWay'
+import MilkyWay from './MilkyWay'
+import { deriveMoon } from '../../lib/environment/deriveMoon'
+import Moon from './Moon'
 
 /**
  * @typedef {import('../../types/environment.js').EnvironmentState} EnvironmentState
@@ -17,6 +21,8 @@ import Stars from './Stars'
  * @typedef {import('../../lib/environment/deriveSnow.js').SnowState} SnowState
  * @typedef {import('../../lib/environment/deriveSky.js').SkyState} SkyState
  * @typedef {import('../../lib/environment/deriveStars.js').StarsState} StarsState
+ * @typedef {import('../../lib/environment/deriveMilkyWay.js').MilkyWayState} MilkyWayState
+ * @typedef {import('../../lib/environment/deriveMoon.js').MoonState} MoonState
  */
 
 const DEFAULT_LIGHTING = deriveLighting(DEFAULT_ENVIRONMENT)
@@ -25,6 +31,8 @@ const DEFAULT_RAIN = deriveRain(DEFAULT_ENVIRONMENT)
 const DEFAULT_SNOW = deriveSnow(DEFAULT_ENVIRONMENT)
 const DEFAULT_SKY = deriveSky(DEFAULT_ENVIRONMENT)
 const DEFAULT_STARS = deriveStars(DEFAULT_ENVIRONMENT)
+const DEFAULT_MILKY_WAY = deriveMilkyWay(DEFAULT_ENVIRONMENT)
+const DEFAULT_MOON = deriveMoon(DEFAULT_ENVIRONMENT)
 
 // Hand-placed positions/sizes for the cloud layer — a rendering/artwork
 // concern owned here, same as `stars` above. How visible each slot is
@@ -109,7 +117,18 @@ const Cloud = ({ slot, opacity, scale, softnessPx }) => (
  * the same position in the tree and owns its own ~1,100-star layout, which
  * is generated once at module load, not here or per render.
  *
- * @param {{ environment?: EnvironmentState, lighting?: LightingConfig, clouds?: CloudConfig, rain?: RainState, snow?: SnowState, sky?: SkyState, stars?: StarsState }} props
+ * Also renders the Milky Way (see lib/environment/deriveMilkyWay.js) driven
+ * by a MilkyWayState — layered Sky → MilkyWay → Stars → Clouds, so clouds
+ * naturally paint over it and it never sits on top of (or dominates) the
+ * star field.
+ *
+ * Also renders the moon (see lib/environment/deriveMoon.js) driven by a
+ * MoonState — replaces the fixed moon circles this file originally had
+ * (same static-Phase-1-artwork situation the old star array was in);
+ * <Moon> moves, phase-shades, and fades on its own, computed entirely in
+ * deriveMoon.js. Layered Stars → Moon → Clouds, so clouds paint over it too.
+ *
+ * @param {{ environment?: EnvironmentState, lighting?: LightingConfig, clouds?: CloudConfig, rain?: RainState, snow?: SnowState, sky?: SkyState, stars?: StarsState, milkyWay?: MilkyWayState, moon?: MoonState }} props
  */
 const LakeIllustration = ({
   environment = DEFAULT_ENVIRONMENT,
@@ -119,6 +138,8 @@ const LakeIllustration = ({
   snow = DEFAULT_SNOW,
   sky = DEFAULT_SKY,
   stars = DEFAULT_STARS,
+  milkyWay = DEFAULT_MILKY_WAY,
+  moon = DEFAULT_MOON,
 }) => (
   <svg
     viewBox="0 0 1440 800"
@@ -150,28 +171,59 @@ const LakeIllustration = ({
         <stop offset="100%" stopColor="#1C4A66" />
       </linearGradient>
 
-      <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#FAFAF8" stopOpacity="0.9" />
-        <stop offset="100%" stopColor="#FAFAF8" stopOpacity="0" />
+      {/* Restrained halo — softer/lower-opacity falloff than the old fixed
+          moonGlow it replaces, per this phase's "avoid exaggerated bloom". */}
+      <radialGradient id="moonHalo" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#F7F3E8" stopOpacity="0.55" />
+        <stop offset="100%" stopColor="#F7F3E8" stopOpacity="0" />
+      </radialGradient>
+
+      {/* The lit-disc fill — an off-center focal point gives a subtle
+          brightness gradient across the disc ("naturally illuminated",
+          not a perfectly flat/white circle) without literal crater detail. */}
+      <radialGradient id="moonSurface" cx="42%" cy="40%" r="65%">
+        <stop offset="0%" stopColor="#FBF8EF" />
+        <stop offset="70%" stopColor="#EDE7D6" />
+        <stop offset="100%" stopColor="#D8D0BC" />
       </radialGradient>
 
       <radialGradient id="cloudPuff" cx="50%" cy="45%" r="55%">
         <stop offset="0%" stopColor="#F3F6F8" stopOpacity="0.95" />
         <stop offset="100%" stopColor="#F3F6F8" stopOpacity="0" />
       </radialGradient>
+
+      {/* One soft radial glow per Milky Way palette entry (see
+          deriveMilkyWay.js's MILKY_WAY_PALETTE) — same technique as
+          moonGlow/cloudPuff above, just parameterized over the palette so
+          there's one definition per color instead of four near-duplicates. */}
+      {MILKY_WAY_PALETTE.map((color, i) => (
+        <radialGradient key={color} id={`milkyWayGlow${i}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor={color} stopOpacity="0.9" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </radialGradient>
+      ))}
     </defs>
 
     {/* sky */}
     <rect x="0" y="0" width="1440" height="800" fill="url(#sky)" />
+
+    {/* Milky Way — visibility driven by `milkyWay` (MilkyWayState); layered
+        behind stars and clouds deliberately (Sky → Milky Way → Stars →
+        Clouds), so it never sits on top of the star field and clouds
+        naturally paint over it. Shape is fixed (no animation); only opacity
+        changes as conditions change. */}
+    <MilkyWay milkyWay={milkyWay} />
 
     {/* stars — visibility driven by `stars` (StarsState); positions are a
         fixed, deterministic layout generated once (see deriveStars.js),
         never regenerated here */}
     <Stars stars={stars} />
 
-    {/* moon */}
-    <circle cx="1180" cy="120" r="90" fill="url(#moonGlow)" />
-    <circle cx="1180" cy="120" r="34" fill="#FAFAF8" opacity="0.9" />
+    {/* moon — position/phase/visibility driven entirely by `moon`
+        (MoonState); renders nothing when moon.visible is false. Layered
+        here deliberately (sky/Milky Way/stars → moon → clouds), so clouds
+        naturally paint over it. */}
+    <Moon moon={moon} />
 
     {/* clouds — visibility/size/softness driven by `clouds` (CloudConfig);
         positions/shapes are fixed, same artwork regardless of density */}

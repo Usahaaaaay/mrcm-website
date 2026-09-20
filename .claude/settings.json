@@ -190,7 +190,16 @@
       "Bash(node verify-snow-determinism.tmp.mjs)",
       "Bash(rm -f verify-snow.tmp.mjs verify-snow-determinism.tmp.mjs)",
       "Bash(node verify-stars.tmp.mjs)",
-      "Bash(rm -f verify-stars.tmp.mjs)"
+      "Bash(rm -f verify-stars.tmp.mjs)",
+      "Bash(node verify-milkyway.tmp.mjs)",
+      "Bash(node \"C:\\\\Users\\\\mrcma\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-mrcma-OneDrive-Documents-Projects-Personal-Website\\\\c11b849e-6298-4a70-b401-86f2529e6efb\\\\scratchpad\\\\debug-blobs.mjs\")",
+      "Bash(node debug-milkyway-inline.tmp.mjs)",
+      "Bash(rm -f verify-milkyway.tmp.mjs debug-visual.tmp.mjs)",
+      "Bash(node verify-moon-phase.tmp.mjs)",
+      "Bash(sed -i \"s/viewport: { width: 400, height: 400 }/viewport: { width: 1280, height: 800 }/\" verify-moon-phase.tmp.mjs)",
+      "Bash(sed -i \"s/translate\\(200px, 220px\\) scale\\(2.2\\)/translate\\(720px, 300px\\) scale\\(2.2\\)/\" verify-moon-phase.tmp.mjs)",
+      "Bash(node verify-moon-full.tmp.mjs)",
+      "Bash(rm -f verify-moon-full.tmp.mjs)"
     ],
     "additionalDirectories": [
       "C:\\Users\\mrcma\\OneDrive\\Documents\\Projects\\Personal Website\\supabase",

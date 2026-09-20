@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { LogIn, Mountain } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../../components/ui/Button'
@@ -66,9 +66,14 @@ const Login = () => {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="password" className="text-sm font-medium text-navy">
-              Password
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="password" className="text-sm font-medium text-navy">
+                Password
+              </label>
+              <Link to="/admin/forgot-password" className="text-xs font-medium text-lake hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="password"
               type="password"

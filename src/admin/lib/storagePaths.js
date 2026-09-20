@@ -8,6 +8,8 @@ const FOLDERS = {
   video: 'videos',
   'video-thumbnail': 'videos/thumbnails',
   general: 'images/general',
+  'studio/apps': 'images/studio/apps',
+  'studio/projects': 'images/studio/projects',
 }
 
 export function getStoragePath(context, filename) {

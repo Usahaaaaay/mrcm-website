@@ -8,6 +8,8 @@ import {
   Video,
   MapPin,
   UserCircle,
+  AppWindow,
+  FolderKanban,
 } from 'lucide-react'
 
 export const adminNavGroups = [
@@ -38,6 +40,13 @@ export const adminNavGroups = [
   {
     label: 'Tekapo Guide',
     items: [{ label: 'Destinations', href: '/admin/destinations', icon: MapPin }],
+  },
+  {
+    label: 'Little Lantern Studios',
+    items: [
+      { label: 'Apps', href: '/admin/studio/apps', icon: AppWindow },
+      { label: 'Projects', href: '/admin/studio/projects', icon: FolderKanban },
+    ],
   },
 ]
 

@@ -17,6 +17,20 @@
   --color-lake-100: #D3E4EC;
   --color-navy-50: #EDF1F5;
 
+  /* Little Lantern Studios palette — a warm, hand-lit "hobby studio" identity,
+     deliberately distinct from the cool Lake Tekapo palette above so /studio
+     reads as its own brand rather than a reskin of MRCMalubay. Unused until
+     the Studio UI (a later phase) consumes them. */
+  --color-lantern-glow: #F4A64A;
+  --color-lantern-ember: #D9782E;
+  --color-lantern-dusk: #2B2140;
+  --color-lantern-paper: #FFF8EE;
+  --color-lantern-ink: #3A2E22;
+  /* Deeper shade of lantern-dusk, for gradient depth only (e.g. the Studio
+     Home hero's night-sky atmosphere) — not a new hue, just more of the
+     same one. Added Phase 9 (visual identity refresh). */
+  --color-lantern-night: #1B1530;
+
   --font-display: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
 
@@ -100,10 +114,37 @@ h1, h2, h3, h4, h5, h6 {
 .hero-star {
   transition: opacity 4s ease;
 }
+/* Hero Milky Way — even slower than stars: it "should never suddenly
+   appear" and reads as infinitely distant, so its fade is the gentlest of
+   any layer. Shape/blur never transition (they never change — see
+   MilkyWay.jsx, no animation by design), only opacity. */
+.hero-milky-way-blob {
+  transition: opacity 6s ease;
+}
+/* Hero moon — position (rise/set arc) and opacity both ease at the same
+   pace as the star field: the moon is more prominent than the Milky Way, so
+   its transitions are a bit snappier, but still slow enough to read as a
+   graceful arc rather than a jump (recomputed roughly once a minute
+   alongside `celestial`). Unlike Rain/Snow, nothing here is driven by
+   requestAnimationFrame, so transitioning `transform` is safe. */
+.hero-moon {
+  transition: transform 4s ease;
+}
+.hero-moon-shape {
+  transition: opacity 4s ease;
+}
 
 :focus-visible {
   outline: 2px solid var(--color-lake);
   outline-offset: 3px;
+}
+
+/* Little Lantern Studios only (see .ll-studio on StudioLayout's root) —
+   keeps the focus ring warm/on-brand instead of inheriting MRCMalubay's
+   lake-blue above. Same visible 2px solid outline, just recolored;
+   doesn't change whether focus is visible, only what color it is. */
+.ll-studio :focus-visible {
+  outline-color: var(--color-lantern-glow);
 }
 
 @media (prefers-reduced-motion: reduce) {

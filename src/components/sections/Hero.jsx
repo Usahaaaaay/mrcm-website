@@ -14,6 +14,8 @@ import { deriveSnow } from '../../lib/environment/deriveSnow'
 import { deriveCelestial } from '../../lib/environment/deriveCelestial'
 import { deriveSky } from '../../lib/environment/deriveSky'
 import { deriveStars } from '../../lib/environment/deriveStars'
+import { deriveMilkyWay } from '../../lib/environment/deriveMilkyWay'
+import { deriveMoon } from '../../lib/environment/deriveMoon'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -75,6 +77,22 @@ const Hero = () => {
   // only recomputes the single `visibility` number.
   const stars = useMemo(() => deriveStars(environment, celestial), [environment, celestial])
 
+  // The moon — see deriveMoon.js. Computed *before* `milkyWay` on purpose:
+  // it's the one derive function another derive function depends on (see
+  // deriveMilkyWay.js's `moonlightFade` parameter, and the Architectural
+  // Improvement note in its doc comment for why this dependency exists and
+  // why it's threaded through Hero rather than deriveMilkyWay importing
+  // deriveMoon.js directly).
+  const moon = useMemo(() => deriveMoon(environment, celestial), [environment, celestial])
+
+  // Same pattern as the other layers — see deriveMilkyWay.js. Blob layout
+  // is generated once at module load, same as the star field; this
+  // recomputes the scalar factors, now including moonlight suppression.
+  const milkyWay = useMemo(
+    () => deriveMilkyWay(environment, celestial, moon.moonlightFade),
+    [environment, celestial, moon.moonlightFade]
+  )
+
   return (
     <section
       id="home"
@@ -88,6 +106,8 @@ const Hero = () => {
         snow={snow}
         sky={sky}
         stars={stars}
+        milkyWay={milkyWay}
+        moon={moon}
       />
       <FloatingParticles environment={environment} />
 
