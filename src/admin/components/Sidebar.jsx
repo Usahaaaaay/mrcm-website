@@ -14,7 +14,7 @@ const Sidebar = ({ open, onClose }) => {
             <Mountain size={18} strokeWidth={1.75} />
           </span>
           <span className="font-display text-sm font-bold tracking-tight">
-            MRC<span className="text-turquoise">Malubay</span>
+            MRC <span className="text-turquoise">Labs</span>
           </span>
         </div>
         <button

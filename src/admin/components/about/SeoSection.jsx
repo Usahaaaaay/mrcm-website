@@ -10,7 +10,7 @@ const SeoSection = ({ form, updateFields }) => (
         <input
           value={form.seo_title ?? ''}
           onChange={(e) => updateFields({ seo_title: e.target.value })}
-          placeholder="About — MRCMalubay"
+          placeholder="About — MRC Labs"
           className={fieldClasses}
         />
       </div>

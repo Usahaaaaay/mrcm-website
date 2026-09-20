@@ -58,7 +58,7 @@ const BlogPostPage = () => {
   const { post, loading, error } = usePublishedPost(slug)
 
   useEffect(() => {
-    document.title = post ? `${post.title} — MRCMalubay` : 'MRCMalubay'
+    document.title = post ? `${post.title} — MRC Labs` : 'MRC Labs'
   }, [post])
 
   return (

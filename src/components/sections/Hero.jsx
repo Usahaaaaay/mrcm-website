@@ -156,12 +156,7 @@ const Hero = () => {
           {/* Blog is now its own route (/blog), not a homepage section — a
               real <Link> rather than the "#id" anchor pattern the other Hero
               buttons use, since there's nothing on this page to scroll to. */}
-          <Button
-            as={Link}
-            to="/blog"
-            variant="secondary"
-            className="border-alpine/30 text-alpine hover:border-turquoise hover:text-turquoise"
-          >
+          <Button as={Link} to="/blog" variant="onDark">
             Read My Blog
           </Button>
         </motion.div>

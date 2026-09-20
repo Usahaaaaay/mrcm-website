@@ -18,7 +18,7 @@ const BlogListPage = () => {
   const { posts, loading, error } = usePublishedPosts()
 
   useEffect(() => {
-    document.title = 'Blog — MRCMalubay'
+    document.title = 'Blog — MRC Labs'
   }, [])
 
   return (

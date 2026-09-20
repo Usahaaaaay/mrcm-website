@@ -78,7 +78,7 @@ const Navbar = () => {
             lightChrome ? 'text-navy' : 'text-alpine'
           }`}
         >
-          MRC<span className={lightChrome ? 'text-lake' : 'text-turquoise'}>Malubay</span>
+          MRC <span className={lightChrome ? 'text-lake' : 'text-turquoise'}>Labs</span>
         </Link>
 
         <ul className="hidden items-center gap-9 md:flex">

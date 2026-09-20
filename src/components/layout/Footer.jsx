@@ -6,7 +6,7 @@ const Footer = () => (
   <footer className="border-t border-navy/8 bg-navy text-alpine/70">
     <div className="mx-auto flex max-w-7xl flex-col items-center gap-8 px-6 py-14 sm:px-10">
       <Link to="/" className="font-display text-lg font-bold tracking-tight text-alpine">
-        MRC<span className="text-turquoise">Malubay</span>
+        MRC <span className="text-turquoise">Labs</span>
       </Link>
 
       <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm">
@@ -41,7 +41,7 @@ const Footer = () => (
         &ldquo;Building things with purpose.&rdquo;
       </p>
 
-      <p className="text-xs text-alpine/40">© 2026 MRCMalubay. All rights reserved.</p>
+      <p className="text-xs text-alpine/40">© 2026 MRC Labs. All rights reserved.</p>
     </div>
   </footer>
 )

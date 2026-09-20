@@ -42,7 +42,7 @@ const Login = () => {
             <Mountain size={22} strokeWidth={1.75} />
           </span>
           <h1 className="font-display text-xl font-bold text-navy">Admin Sign In</h1>
-          <p className="text-sm text-slate">MRCMalubay content dashboard</p>
+          <p className="text-sm text-slate">MRC Labs content dashboard</p>
         </div>
 
         <form

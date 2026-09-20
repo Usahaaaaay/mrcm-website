@@ -7,6 +7,14 @@ const variants = {
     'bg-transparent text-navy border border-navy/15 hover:border-lake hover:text-lake',
   ghost: 'bg-transparent text-navy hover:text-lake',
   danger: 'bg-red-600 text-snow hover:bg-red-700 shadow-soft hover:shadow-lift',
+  // For use on dark surfaces (e.g. the Hero section's navy background) where
+  // `secondary`'s navy text/border would be invisible. Kept as its own
+  // variant rather than overridden via className on a case-by-case basis —
+  // Tailwind's generated class order doesn't follow the order classes are
+  // written in, so a `className` override can't reliably beat a variant's
+  // same-property class (color/border-color) at the same specificity.
+  onDark:
+    'bg-transparent text-alpine border border-alpine/30 hover:border-turquoise hover:text-turquoise hover:bg-alpine/10',
 }
 
 const Button = forwardRef(function Button(
