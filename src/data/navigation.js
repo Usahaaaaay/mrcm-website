@@ -17,6 +17,12 @@ export const navLinks = [
   { label: 'Gallery', href: '/#gallery', type: 'hash' },
   { label: 'Tekapo Guide', href: '/guide', type: 'route' },
   { label: 'Tekapo Journey', href: '/tekapo-journey', type: 'route', hidden: true },
+  // Little Lantern Studios is its own separate identity (own layout, own
+  // navigation, own footer — see src/layouts/StudioLayout.jsx) that just
+  // happens to live at /studio on this same site. This is the one, single
+  // entry point into it from the main site; nothing inside /studio links
+  // back out to here, by design.
+  { label: 'Little Lantern', href: '/studio', type: 'route' },
   { label: 'About', href: '/#about', type: 'hash' },
 ]
 
